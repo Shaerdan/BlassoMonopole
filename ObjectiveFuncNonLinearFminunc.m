@@ -14,7 +14,6 @@ RegularizationTerm = norm(IntensityNormalized,1);
 
 J = 0.5*LeastSquareTerm^2 + Lambda*RegularizationTerm;
 [GradientPseudo] = GradPseudoFminunc(X,Descrepency,PhiComponent,CosGamma,DistPQ,Mesh,FL2Norm, Lambda);
-% grad_s
 
 end
 
