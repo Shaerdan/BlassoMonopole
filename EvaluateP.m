@@ -1,18 +1,18 @@
-function [P] = EvaluateP(X,Intensity,Measurement,Mesh,FL2Norm)
+function [P] = EvaluateP(X,I,Measurement,Mesh,FL2Norm)
 
 %   Compute P = Measurement - Estimation.
 
 %   X --- estimated source locations vector.
-%   Intensity --- estimated source intensity vector.
+%   I --- estimated source intensity vector.
 %   PhiEstimated --- computed analytically from:
-%                    Sum_i(Intensity(i)*PhiComponent(X(i)));
+%                    Sum_i(I(i)*PhiComponent(X(i)));
 
-SourceNum = length(Intensity);
+SourceNum = length(I);
 
-if (~isempty(Intensity))
-    Intensity_Normalized = Intensity./FL2Norm';
+if (~isempty(I))
+    I_Normalized = I./FL2Norm;
     PhiComponent = ComputePotentialComponent(X,Mesh);
-    PhiEstimated=sum(bsxfun(@times,PhiComponent,reshape(Intensity_Normalized,1,1,SourceNum)),3);
+    PhiEstimated=sum(bsxfun(@times,PhiComponent,reshape(I_Normalized,1,1,SourceNum)),3);
     P = -PhiEstimated + Measurement;
     figure(40)
     surf(PhiEstimated);

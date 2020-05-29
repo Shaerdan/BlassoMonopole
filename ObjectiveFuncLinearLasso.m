@@ -1,15 +1,14 @@
-function [f,Grad] = ObjectiveFuncLinearLasso(x,Measurement,PhiComponent,Mesh,F_L2Norm,Lambda)
+function [ObjectiveF,Grad] = ObjectiveFuncLinearLasso(X,Measurement,PhiComponent,Mesh,F_L2Norm,Lambda)
 %UNTITLED6 Summary of this function goes here
 %   Compute objective function and the gradient of the descrepency term.
-%   x   --- initial value of the unknown parameters
+%   X   --- The unknown parameters
 
-[Grad,D] = GradFBS(x,Measurement,Mesh,PhiComponent,F_L2Norm);
-Grad = Grad';
+[Grad,D] = GradFBS(X,Measurement,Mesh,PhiComponent,F_L2Norm);
 
 DescrepencyTerm = norm(D,2);
-RegularizationTerm = Lambda*norm(x,1);
+RegularizationTerm = Lambda*norm(X,1);
 
-f = 0.5*DescrepencyTerm^2 + RegularizationTerm;
+ObjectiveF = 0.5*DescrepencyTerm^2 + RegularizationTerm;
 
 end
 

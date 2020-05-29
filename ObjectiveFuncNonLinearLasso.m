@@ -1,24 +1,19 @@
-function [J,grad_s] = ObjectiveFuncNonLinearLasso(X,Measurement,Lambda, Mesh,F_L2Norm)
+function [J,GradientPseudo] = ObjectiveFuncNonLinearLasso(X,Measurement,Lambda, Mesh,FL2Norm)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 SourceNum = length(X)/4;
-Intensity = X(1:SourceNum)./F_L2Norm;
+IntensityNormalized = X(1:SourceNum)./FL2Norm;
 Locations = X(SourceNum +1:end);
 
-[PhiComponent,CosGamma,L_in] = ComputePotentialComponent(Locations,Mesh);
-% for i=1:n1
-%     PhiComponent(:,:,i) = PhiComponent(:,:,i)/F_L2Norm(i);
-% end
+[PhiComponent,CosGamma,DistPQ] = ComputePotentialComponent(Locations,Mesh);
 
-
-Estimation=sum(bsxfun(@times,PhiComponent,reshape(Intensity,1,1,SourceNum)),3);
-
+Estimation=sum(bsxfun(@times,PhiComponent,reshape(IntensityNormalized,1,1,SourceNum)),3);
 Descrepency = Estimation - Measurement;
 LeastSquareTerm = norm(Descrepency,2);
-RegularizationTerm = norm(Intensity,1);
+RegularizationTerm = norm(IntensityNormalized,1);
 
 J = 0.5*LeastSquareTerm^2 + Lambda*RegularizationTerm;
-[grad_s] = GradPseudo(X,Descrepency,PhiComponent,CosGamma,L_in,Mesh,F_L2Norm, Lambda);
+[GradientPseudo] = GradPseudo(X,Descrepency,PhiComponent,CosGamma,DistPQ,Mesh,FL2Norm, Lambda);
 % grad_s
 
 end

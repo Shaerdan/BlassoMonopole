@@ -1,8 +1,14 @@
-function [GradPseudo] = GradPseudo(X,D,PhiComponent,CosGamma,L_in,Mesh,norm_F, lambda)
+function [GradPseudo] = GradPseudo(X,Descrepency,PhiComponent,CosGamma,DistancePQ,Mesh,FL2Norm, Lambda)
 
+%%  Compute pseudo gradient of ||Estimates(X) - Measurement||_2^2 + ...
+%  Lambda* ||X||_1;
+%  GradPseudo = d||Estimates - Measurement||_2^2/dX + ...
+%  SubGradient of Lambda*||X||_1;
+%  I --- Source intensity;
 
+%% Initialize:
 SourceNum = length(X)/4;
-Intensity = X(1:SourceNum);
+I = X(1:SourceNum);
 Locations = X(SourceNum +1:end);
 A1 = sin(Mesh.ThetaQ);
 A2 = cos(Mesh.ThetaQ);
@@ -12,48 +18,48 @@ GradPseudo = zeros(1,SourceNum);
 GradSub = GradPseudo;
 GradDescrepency  = GradPseudo;
 
+%% Compute the Pseudo gradient of the objective function:
 for i = 1:SourceNum
-    %%%%%%%%%% d/dIntensity %%%%%%%%%%%%%
-    integrand_da = (D.*PhiComponent(:,:,i).*A1);
+    %% dObjectiveFunction/dIntensity
+    integrand_da = (Descrepency.*PhiComponent(:,:,i).*A1);
     GradDescrepency(i)  = trapz(dy,trapz(dx,integrand_da,2));
-    GradSub(i) = lambda*sign(X(i));
-    GradPseudo(i) =   GradDescrepency(i)/norm_F(i) + GradSub(i);
+    GradSub(i) = Lambda*sign(X(i));
+    GradPseudo(i) =   GradDescrepency(i)/FL2Norm(i) + GradSub(i);
     
-    %%%%%%%%%% Delta_r %%%%%%%%%%%%%
-    Diff_Lin_Radius = (Locations(i)-CosGamma(:,:,i))./L_in(:,:,i);
-    Diff_Estimate_Radius     = ((-2*Intensity(i)./(L_in(:,:,i).^2)).*Diff_Lin_Radius ...
-        - (Intensity(i)./(1-Locations(i)*CosGamma(:,:,i)+L_in(:,:,i)))...
-        .*(-CosGamma(:,:,i) + Diff_Lin_Radius));
-    Diff_Estimate_Radius     = Intensity(i)*Diff_Estimate_Radius./norm_F(i);
-    Diff_FL2Norm_Radius  = - Intensity(i)*((PhiComponent(:,:,i).^2)/(norm_F(i))^3).*Diff_Estimate_Radius;
-    Diff_Integrand_Radius = D.*(Diff_Estimate_Radius+Diff_FL2Norm_Radius).*A1;
+    %% dObjectiveFunction/dRadius 
+    Diff_DistPQ_Radius = (Locations(i)-CosGamma(:,:,i))./DistancePQ(:,:,i);
+    Diff_Estimate_Radius     = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Radius ...
+        - (I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
+        .*(-CosGamma(:,:,i) + Diff_DistPQ_Radius));
+    Diff_Estimate_Radius     = I(i)*Diff_Estimate_Radius./FL2Norm(i);
+    Diff_FL2Norm_Radius  = - I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Radius;
+    Diff_Integrand_Radius = Descrepency.*(Diff_Estimate_Radius+Diff_FL2Norm_Radius).*A1;
     GradDescrepency(i+SourceNum)  = trapz(dy,trapz(dx,Diff_Integrand_Radius,2));
     GradPseudo(i+SourceNum) = GradDescrepency(i+SourceNum) ;
     
-    %%%%%%%%%% Delta_th %%%%%%%%%%%%%
+    %% dObjectiveFunction/dTheta 
     Diff_CosGamma_Theta = -sin(Locations(i+SourceNum))*A2+cos(Locations(i+SourceNum))*A1...
         .*cos(Mesh.PsiQ - Locations(i+2*SourceNum));
-    Diff_Lin_Theta = -(Locations(i)./L_in(:,:,i)).*(Diff_CosGamma_Theta);
-    Diff_Estimate_Theta = ((-2*Intensity(i)./(L_in(:,:,i).^2)).*Diff_Lin_Theta ...
-        - (Intensity(i)./(1-Locations(i)*CosGamma(:,:,i)+L_in(:,:,i)))...
-        .*(-Locations(i)*Diff_CosGamma_Theta + Diff_Lin_Theta));
-    Diff_Estimate_Theta     = Intensity(i)*Diff_Estimate_Theta./norm_F(i);
-    Diff_FL2Norm_Theta  = - Intensity(i)*((PhiComponent(:,:,i).^2)/(norm_F(i))^3).*Diff_Estimate_Theta;
-    Diff_Integrand_Theta = D.*(Diff_Estimate_Theta+Diff_FL2Norm_Theta).*A1;
+    Diff_DistPQ_Theta = -(Locations(i)./DistancePQ(:,:,i)).*(Diff_CosGamma_Theta);
+    Diff_Estimate_Theta = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Theta ...
+        - (I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
+        .*(-Locations(i)*Diff_CosGamma_Theta + Diff_DistPQ_Theta));
+    Diff_Estimate_Theta     = I(i)*Diff_Estimate_Theta./FL2Norm(i);
+    Diff_FL2Norm_Theta  = - I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Theta;
+    Diff_Integrand_Theta = Descrepency.*(Diff_Estimate_Theta+Diff_FL2Norm_Theta).*A1;
     GradDescrepency(i+2*SourceNum) = trapz(dy,trapz(dx,Diff_Integrand_Theta,2));
     GradPseudo(i+2*SourceNum) = GradDescrepency(i+2*SourceNum);
     
-    %%%%%%%%%% Delta_psi %%%%%%%%%%%%%
+    %% dObjectiveFunction/dPsi 
     Diff_CosGamma_Psi =  sin(Locations(i+SourceNum)).*A1...
         .*sin(Mesh.PsiQ - Locations(i+2*SourceNum));
-    Diff_Lin_Psi = -(Locations(i)./L_in(:,:,i)).*(Diff_CosGamma_Psi);
-    Diff_Estimate_Psi   = ((-2*Intensity(i)./(L_in(:,:,i).^2)).*Diff_Lin_Psi ...
-        -(Intensity(i)./(1-Locations(i)*CosGamma(:,:,i)+L_in(:,:,i)))...
-        .*(-Locations(i)*Diff_CosGamma_Psi + Diff_Lin_Psi));
-    Diff_Estimate_Psi     = Intensity(i)*Diff_Estimate_Psi./norm_F(i);
-    Diff_FL2Norm_Psi  =- Intensity(i)*((PhiComponent(:,:,i).^2)/(norm_F(i))^3).*Diff_Estimate_Psi;
-    Diff_Integrand_Psi   = D.*(Diff_Estimate_Psi+Diff_FL2Norm_Psi).*A1;
+    Diff_DistPQ_Psi = -(Locations(i)./DistancePQ(:,:,i)).*(Diff_CosGamma_Psi);
+    Diff_Estimate_Psi   = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Psi ...
+        -(I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
+        .*(-Locations(i)*Diff_CosGamma_Psi + Diff_DistPQ_Psi));
+    Diff_Estimate_Psi     = I(i)*Diff_Estimate_Psi./FL2Norm(i);
+    Diff_FL2Norm_Psi  =- I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Psi;
+    Diff_Integrand_Psi   = Descrepency.*(Diff_Estimate_Psi+Diff_FL2Norm_Psi).*A1;
     GradDescrepency(i+3*SourceNum) = trapz(dy,trapz(dx,Diff_Integrand_Psi,2));
     GradPseudo(i+3*SourceNum) = GradDescrepency(i+3*SourceNum);
 end
-GradPseudo = GradPseudo';
