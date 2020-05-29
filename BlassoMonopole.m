@@ -43,7 +43,7 @@ LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc';
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 %  and bfgs approximation of the Hessian.
-NonLinearSolver = 'fminunc';        % choose 'lbfgsc' or 'fminunc';
+NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 
 %% FBS solver control:
 FBS.Tau = 1e-1;
@@ -158,12 +158,11 @@ for ii = 1:GlobalIteration
     % Choose nonlinear solver:
     switch NonLinearSolver
         case 'lbfgsc'
-            options1 = struct('x0',InitialSolution,'m',20,'factr',1e0,...
+            OptLBFGSB = struct('x0',InitialSolution','m',20,'factr',1e0,...
                 'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
-            IntensityMax = 5;
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
-                ObjectiveFuncNonLinearLasso(X,Data,lambda, Mesh, F_L2Norm),...
-                lb1, ub1, options1 );
+                ObjectiveFuncNonLinearLasso(X,Data.Measurement,Lambda, Mesh, F_L2Norm'),...
+                LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
         case 'fminunc'
             problem = createOptimProblem('fmincon','x0',InitialSolution,...
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
