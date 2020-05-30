@@ -15,8 +15,8 @@ for i=1:Mesh.LengthRadiusS
         for k=1:Mesh.LengthPsiS
             CosGamma = cos(Mesh.ThetaS(j)).*cos(Mesh.ThetaQ)+sin(Mesh.ThetaS(j)).*...
                 sin(Mesh.ThetaQ).*cos(Mesh.PsiS(k)- Mesh.PsiQ);
-            DistancePQ  = sqrt(1 + Mesh.RadiusS(i).^2 - 2* Mesh.RadiusS(i).*CosGamma);
-            F      = (2./DistancePQ) - log(1-Mesh.RadiusS(i).*CosGamma + DistancePQ);
+            DistanceSQ  = sqrt(1 + Mesh.RadiusS(i).^2 - 2* Mesh.RadiusS(i).*CosGamma);
+            F      = (2./DistanceSQ) - log(1-Mesh.RadiusS(i).*CosGamma + DistanceSQ);
             Integrand0 = F.*sin(Mesh.ThetaQ);
             FL2Norm = trapz(Mesh.PsiLine', trapz(Mesh.ThetaLine',Integrand0,2));
             F_Normalized  = F./FL2Norm;
