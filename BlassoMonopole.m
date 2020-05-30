@@ -163,6 +163,8 @@ for ii = 1:GlobalIteration
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh, F_L2Norm'),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
+            Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
+            Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
         case 'fminunc'
             problem = createOptimProblem('fmincon','x0',InitialSolution,...
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
@@ -171,9 +173,10 @@ for ii = 1:GlobalIteration
                 'options', Opts);
             [SolutionArgmin,fval2,flag,stepcount] = fmincon(problem);
             fprintf('flag of fmincon %d\n',flag);
+            Solution.Intensity = SolutionArgmin(1:SourceNumUpdate);
+            Solution.Location = SolutionArgmin(SourceNumUpdate+1:end);
     end
-    Solution.Intensity = SolutionArgmin(1:SourceNumUpdate);
-    Solution.Location = SolutionArgmin(SourceNumUpdate+1:end);
+
     % Debug line, output the source intensities and locations:
     figure(23)
     bar(Solution.Intensity);

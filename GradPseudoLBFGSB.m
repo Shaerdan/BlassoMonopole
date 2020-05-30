@@ -14,7 +14,7 @@ A1 = sin(Mesh.ThetaQ);
 A2 = cos(Mesh.ThetaQ);
 dx = Mesh.ThetaQ(1,:)';
 dy = Mesh.PsiQ(:,1);
-GradPseudo = zeros(SourceNum,1);
+GradPseudo = zeros(1,SourceNum);
 GradSub = GradPseudo;
 GradDescrepency  = GradPseudo;
 
@@ -63,5 +63,4 @@ for i = 1:SourceNum
     GradDescrepency(i+3*SourceNum) = trapz(dy,trapz(dx,Diff_Integrand_Psi,2));
     GradPseudo(i+3*SourceNum) = GradDescrepency(i+3*SourceNum);
 end
-GradPseudo = GradPseudo';
 end
