@@ -31,7 +31,7 @@ for i = 1:SourceNum
     Diff_Estimate_Radius     = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Radius ...
         - (I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
         .*(-CosGamma(:,:,i) + Diff_DistPQ_Radius));
-    Diff_Estimate_Radius     = I(i)*Diff_Estimate_Radius./FL2Norm(i);
+    Diff_Estimate_Radius     = Diff_Estimate_Radius./FL2Norm(i);
     Diff_FL2Norm_Radius  = - I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Radius;
     Diff_Integrand_Radius = Descrepency.*(Diff_Estimate_Radius+Diff_FL2Norm_Radius).*A1;
     GradDescrepency(i+SourceNum)  = trapz(dy,trapz(dx,Diff_Integrand_Radius,2));
@@ -44,7 +44,7 @@ for i = 1:SourceNum
     Diff_Estimate_Theta = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Theta ...
         - (I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
         .*(-Locations(i)*Diff_CosGamma_Theta + Diff_DistPQ_Theta));
-    Diff_Estimate_Theta     = I(i)*Diff_Estimate_Theta./FL2Norm(i);
+    Diff_Estimate_Theta     = Diff_Estimate_Theta./FL2Norm(i);
     Diff_FL2Norm_Theta  = - I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Theta;
     Diff_Integrand_Theta = Descrepency.*(Diff_Estimate_Theta+Diff_FL2Norm_Theta).*A1;
     GradDescrepency(i+2*SourceNum) = trapz(dy,trapz(dx,Diff_Integrand_Theta,2));
@@ -57,7 +57,7 @@ for i = 1:SourceNum
     Diff_Estimate_Psi   = ((-2*I(i)./(DistancePQ(:,:,i).^2)).*Diff_DistPQ_Psi ...
         -(I(i)./(1-Locations(i)*CosGamma(:,:,i)+DistancePQ(:,:,i)))...
         .*(-Locations(i)*Diff_CosGamma_Psi + Diff_DistPQ_Psi));
-    Diff_Estimate_Psi     = I(i)*Diff_Estimate_Psi./FL2Norm(i);
+    Diff_Estimate_Psi     = Diff_Estimate_Psi./FL2Norm(i);
     Diff_FL2Norm_Psi  =- I(i)*((PhiComponent(:,:,i).^2)/(FL2Norm(i))^3).*Diff_Estimate_Psi;
     Diff_Integrand_Psi   = Descrepency.*(Diff_Estimate_Psi+Diff_FL2Norm_Psi).*A1;
     GradDescrepency(i+3*SourceNum) = trapz(dy,trapz(dx,Diff_Integrand_Psi,2));
