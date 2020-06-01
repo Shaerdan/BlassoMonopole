@@ -1,4 +1,4 @@
-function [GradPseudo] = GradPseudoLBFGSB(X,Descrepency,PhiComponent,CosGamma,DistPQ,Mesh,FL2Norm, Lambda)
+function [GradPseudo] = GradPseudoLBFGSB(X,Descrepency,PhiPi,CosGamma,DistPQ,Mesh,FL2Norm, Lambda)
 
 %%  Compute pseudo gradient of ||Estimates(X) - Measurement||_2^2 + ...
 %  Lambda* ||X||_1;
@@ -21,7 +21,7 @@ GradDescrepency  = GradPseudo;
 %% Compute the Pseudo gradient of the objective function:
 for i = 1:SourceNum
     %% dObjectiveFunction/dIntensity
-    Integrand_Di_f_des = (Descrepency.*(PhiComponent(:,:,i)/FL2Norm(i)).*A1);
+    Integrand_Di_f_des = (Descrepency.*(PhiPi(:,:,i)/FL2Norm(i)).*A1);
     GradDescrepency(i)  = trapz(dy,trapz(dx,Integrand_Di_f_des,2));
     GradSub(i) = Lambda*sign(X(i));
     GradPseudo(i) =   GradDescrepency(i) + GradSub(i);
@@ -31,9 +31,9 @@ for i = 1:SourceNum
     Di_DistPQ = (Locations(i)-CosGamma(:,:,i))./DistPQ(:,:,i);
     Di_PDotQ  = CosGamma(:,:,i);
     Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiComponent(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
-    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiComponent(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
+        - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
+    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*A1;
     GradDescrepency(i+SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
     GradPseudo(i+SourceNum) = GradDescrepency(i+SourceNum) ;
@@ -44,9 +44,9 @@ for i = 1:SourceNum
     Di_DistPQ = -(Locations(i)*Di_CosGamma./DistPQ(:,:,i));
     Di_PDotQ  = Locations(i)*Di_CosGamma;
     Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiComponent(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
-    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiComponent(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
+        - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
+    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*A1;
     GradDescrepency(i+2*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
     GradPseudo(i+2*SourceNum) = GradDescrepency(i+2*SourceNum) ;
@@ -57,9 +57,9 @@ for i = 1:SourceNum
     Di_DistPQ = -(Locations(i)*Di_CosGamma./DistPQ(:,:,i));
     Di_PDotQ  = Locations(i)*Di_CosGamma;
     Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiComponent(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
-    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiComponent(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
+        - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i),2))/FL2Norm(i))*Di_PhiPi;
+    Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi + PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*A1;
     GradDescrepency(i+3*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
     GradPseudo(i+3*SourceNum) = GradDescrepency(i+3*SourceNum) ;

@@ -38,7 +38,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc';
+LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -46,10 +46,10 @@ LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc';
 NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 
 %% FBS solver control:
-FBS.Tau = 1e-1;
+FBS.Tau = 1e-2;
 FBS.GradTol = 1e-16; FBS.StepTol = 1e-16;
 FBS.Iteration = 5e5;
-FBS.DisplayFrequency = 100;
+FBS.DisplayFrequency = 10000;
 
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
@@ -70,13 +70,13 @@ EtaMax = zeros(1,GlobalIteration);
 %% Sliding Frank Wolfe Algorithm Interation:
 for ii = 1:GlobalIteration
     
-    F_L2Norm = L2NormF(Solution.Location,Mesh);
+    FL2Norm = L2NormF(Solution.Location,Mesh);
     
     %%  Solve (r,theta,psi) = Argmax_(r',theta',psi') {Eta(r',theta',psi')}
     %          Eta = Eta(Mesh.S) = integral (
     %          F_Normalized(Mesh.Q,Mesh.S)*P(Mesh.Q)dMesh.Q ),
     %          dMesh.Q = sin(Mesh.ThetaQ) * dMesh.ThetaQ * dMesh.PsiQ.
-    P   = EvaluateP(Solution.Location,Solution.Intensity,Data.Measurement,Mesh,F_L2Norm);
+    P   = EvaluateP(Solution.Location,Solution.Intensity,Data.Measurement,Mesh,FL2Norm);
     %%% MARKED FOR DEBUGGING %%%
     tic
     Eta = EvaluateEta(Lambda,Mesh,P);
@@ -113,14 +113,18 @@ for ii = 1:GlobalIteration
     IntensityUpdate = 0;
     InitialIntensity = [Solution.Intensity, IntensityUpdate];
     PhiComponent = ComputePotentialComponent(Solution.Location,Mesh);
-    F_L2Norm = L2NormF(Solution.Location,Mesh);
+    FL2Norm = L2NormF(Solution.Location,Mesh);
     % Choose solvers:
     switch LinearSolver
         case 'FBS'
-            [Solution.Intensity] = FBSSolver(InitialIntensity,Data.Measurement,...
+            Solution.Intensity = FBSSolver(InitialIntensity,Data.Measurement,...
                 FBS.Iteration,PhiComponent,Mesh,...
                 FBS.GradTol,FBS.StepTol,FBS.Tau,Lambda,...
-                FBS.DisplayFrequency,F_L2Norm);
+                FBS.DisplayFrequency,FL2Norm);
+%         case 'FISTA'
+%             Solution.Intensity = fista_general(@X GradFBS(X,Measurement,...
+%                 Mesh,PhiComponent,FL2Norm), @X proj(X), InitialIntensity,...
+%                 FBS.Tau, opts, calc_F); 
         case 'fminunc'
             SourceNumUpdate = ii;
             IntensityMax = 5;
@@ -131,7 +135,7 @@ for ii = 1:GlobalIteration
             problem = createOptimProblem('fmincon','x0',InitialIntensity,...
                 'ub',UpperBoundLinear,'lb',LowerBoundLinear, ...
                 'objective',@(X) ObjectiveFuncLinearLasso(X,...
-                Data.Measurement,PhiComponent,Mesh,F_L2Norm,Lambda),...
+                Data.Measurement,PhiComponent,Mesh,FL2Norm,Lambda),...
                 'options',Opts);
             [Solution.Intensity] = fmincon(problem);
     end
@@ -161,7 +165,7 @@ for ii = 1:GlobalIteration
             OptLBFGSB = struct('x0',InitialSolution','m',20,'factr',1e0,...
                 'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
-                ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh, F_L2Norm'),...
+                ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh, FL2Norm'),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
@@ -169,7 +173,7 @@ for ii = 1:GlobalIteration
             problem = createOptimProblem('fmincon','x0',InitialSolution,...
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
                 'objective',@(X) ObjectiveFuncNonLinearFminunc(X,Data.Measurement,...
-                Lambda, Mesh,F_L2Norm),...
+                Lambda, Mesh,FL2Norm),...
                 'options', Opts);
             [SolutionArgmin,fval2,flag,stepcount] = fmincon(problem);
             fprintf('flag of fmincon %d\n',flag);
