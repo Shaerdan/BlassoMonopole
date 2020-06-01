@@ -20,7 +20,7 @@ for i=1:Mesh.LengthRadiusS
             Integrand0 = F.*sin(Mesh.ThetaQ);
             FL2Norm = trapz(Mesh.PsiLine', trapz(Mesh.ThetaLine',Integrand0,2));
             F_Normalized  = F./FL2Norm;
-            Integrand1 = F_Normalized.*sin(Mesh.ThetaQ).*P;
+            Integrand1 = F_Normalized.*P.*sin(Mesh.ThetaQ);
             Eta(i,j,k) = trapz(Mesh.PsiLine', trapz(Mesh.ThetaLine',Integrand1,2));
         end
     end

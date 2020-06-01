@@ -3,7 +3,7 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-5;
+Lambda = 1e-6;
 
 %%% Mesh Control
 meshsize_r = 30; meshsize_theta = 30; meshsize_psi = 30;
