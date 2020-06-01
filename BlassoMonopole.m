@@ -49,7 +49,7 @@ NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 FBS.Tau = 1e-2;
 FBS.GradTol = 1e-16; FBS.StepTol = 1e-16;
 FBS.Iteration = 5e5;
-FBS.DisplayFrequency = 10000;
+FBS.DisplayFrequency = 100000;
 
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
