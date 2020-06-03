@@ -47,8 +47,8 @@ NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 
 %% FBS solver control:
 FBS.Tau = 1e-2;
-FBS.GradTol = 1e-16; FBS.StepTol = 1e-16;
-FBS.Iteration = 5e5;
+FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
+FBS.Iteration = 1e5;
 FBS.DisplayFrequency = 100000;
 
 %% fminunc solver control:
@@ -121,10 +121,10 @@ for ii = 1:GlobalIteration
                 FBS.Iteration,PhiComponent,Mesh,...
                 FBS.GradTol,FBS.StepTol,FBS.Tau,Lambda,...
                 FBS.DisplayFrequency,FL2Norm);
-%         case 'FISTA'
-%             Solution.Intensity = fista_general(@X GradFBS(X,Measurement,...
-%                 Mesh,PhiComponent,FL2Norm), @X proj(X), InitialIntensity,...
-%                 FBS.Tau, opts, calc_F); 
+         case 'FISTA'
+             Solution.Intensity = fista_general(@(X) GradFBS(X,Measurement,...
+                 Mesh,PhiComponent,FL2Norm), @(X) proj_l1(X), InitialIntensity,...
+                 FBS.Tau, opts, calc_F); 
         case 'fminunc'
             SourceNumUpdate = ii;
             IntensityMax = 5;
