@@ -67,11 +67,11 @@ function [X, iter, min_cost] = fista_general(grad, proj, Xinit, L, opts, calc_F)
     opts_proj.lambda = lambdaLiv;
     while  iter < opts.max_iter
         iter = iter + 1;
-        x_new = feval(proj, y_old - Linv*feval(grad, y_old), opts_proj);
+        x_new = feval(proj, y_old - Linv*feval(grad, y_old));
         t_new = 0.5*(1 + sqrt(1 + 4*t_old^2));
         y_new = x_new + (t_old - 1)/t_new * (x_new - x_old);
         %% check stop criteria
-        e = norm1(x_new - x_old)/numel(x_new);
+        e = norm(x_new - x_old,1)/numel(x_new);
         if e < opts.tol
             break;
         end

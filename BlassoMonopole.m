@@ -38,7 +38,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
+LinearSolver = 'FISTA';               % choose 'FBS' or 'fminunc' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -50,6 +50,12 @@ FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
 FBS.Iteration = 1e5;
 FBS.DisplayFrequency = 100000;
+
+%% FISTA solver constrol:
+FISTAopts.lambda = Lambda;
+FISTAopts.max_iter = 1e5;
+FISTAopts.tol =1e-10;
+FISTAopts.verbose = 'true';
 
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
@@ -114,6 +120,7 @@ for ii = 1:GlobalIteration
     InitialIntensity = [Solution.Intensity, IntensityUpdate];
     PhiComponent = ComputePotentialComponent(Solution.Location,Mesh);
     FL2Norm = L2NormF(Solution.Location,Mesh);
+    SourceNumUpdate = length(InitialIntensity);
     % Choose solvers:
     switch LinearSolver
         case 'FBS'
@@ -122,9 +129,13 @@ for ii = 1:GlobalIteration
                 FBS.GradTol,FBS.StepTol,FBS.Tau,Lambda,...
                 FBS.DisplayFrequency,FL2Norm);
          case 'FISTA'
-             Solution.Intensity = fista_general(@(X) GradFBS(X,Measurement,...
-                 Mesh,PhiComponent,FL2Norm), @(X) proj_l1(X), InitialIntensity,...
-                 FBS.Tau, opts, calc_F); 
+             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
+                 SourceNumUpdate);
+             Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
+                 Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,FISTAopts), InitialIntensity',...
+                  LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
+                  PhiComponent,FL2Norm,Mesh)); 
+              Solution.Intensity = Solution.Intensity'; 
         case 'fminunc'
             SourceNumUpdate = ii;
             IntensityMax = 5;
