@@ -7,7 +7,7 @@ D = sin(Mesh.ThetaQ);
 dx = Mesh.ThetaQ(1,:)';
 dy = Mesh.PsiQ(:,1);
 for i = 1:SourceNumUpdate
-    Integrand = ((PhiComponent(:,:,i)./FL2Norm(i)).^2).*D;
+    Integrand = ((PhiComponent(:,:,i)./FL2Norm(i)).^4).*D;
     Integral(i) = trapz(dy,trapz(dx,Integrand,2));
 end
 LipschitzConst = sum(trapz(dy,trapz(dx,Integrand,2)));

@@ -35,27 +35,10 @@ function [X, iter, min_cost] = fista_general(grad, proj, Xinit, L, opts, calc_F)
 % (http://www.personal.psu.edu/thv102/)
 % -------------------------------------
 %     opts = initOpts(opts);
-    if ~isfield(opts, 'max_iter')
-        opts.max_iter = 500;
-    end
-    if ~isfield(opts, 'regul')
-        opts.regul = 'l1';
-    end     
-    if ~isfield(opts, 'pos')
-        opts.pos = false;
-    end
-    
-    if ~isfield(opts, 'tol')
-        opts.tol = 1e-8;
-    end
-    
-    if ~isfield(opts, 'verbose')
-        opts.verbose = false;
-    end
+
     Linv = 1/L;    
     lambdaLiv = opts.lambda*Linv;
-    % opts_shrinkage = opts;
-    % opts_shrinkage.lambda = lambdaLiv;
+
     x_old = Xinit;
     y_old = Xinit;
     t_old = 1;

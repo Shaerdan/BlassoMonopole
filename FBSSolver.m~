@@ -1,4 +1,4 @@
-function [XHat] = FBSSolver(X,Measurement,FBS,PhiComponent,Mesh,Lambda,FL2Norm)
+function [ZNew] = FBSSolver(X,Measurement,FBS,PhiComponent,Mesh,Lambda,FL2Norm)
 %   FBS iteration:  X_{k+1/2} = X_{k} - Tau*Gradient(||Estimate - ...
 %   Measurement||_2^2);  X_{k+1} = BackProjection(Tau,Lambda,X_{k+1/2});
 %   X   --- The unknown parameters;
@@ -6,30 +6,34 @@ function [XHat] = FBSSolver(X,Measurement,FBS,PhiComponent,Mesh,Lambda,FL2Norm)
 
 
 % Initialization:
-XHat = X;
+ZOld = X;
 GradCheck = 1;
 IterationCount =1;
-DescrepencyResidualCheck = zeros(1,FBS.Iteration);
+DescrepencyResidualCheck = zeros(1,Iter);
 StepSize = 1;
+GradTolerence = FBS.GradTol; StepSizeTolerence = FBS.StepTol;
+Tau = FBS.Tau;
+Mu = FBS.Mu; DisplayFreq = FBS.DisplayFreq;
 % FBS loop (termination condition is: Gradient <= tolerence && Stepsize <= tolerence && InterationCount = Maxiteration):
-while (GradCheck > FBS.GradTol && IterationCount < FBS.Iteration && StepSize > FBS.StepTol)
+while (GradCheck > GradTolerence && IterationCount < Iter && StepSize > StepSizeTolerence)
     
-    [DescrepencyGradient,Descrepency] = GradFBS(XHat,Measurement,Mesh,PhiComponent,FL2Norm);
+    [DescrepencyGradient,Descrepency] = GradFBS(ZOld,Measurement,Mesh,PhiComponent,FL2Norm);
         
     DescrepencyResidualCheck(IterationCount+1) = norm(Descrepency,2);
     
     StepSize = abs(DescrepencyResidualCheck(IterationCount+1) - DescrepencyResidualCheck(IterationCount));
     
-    XHat = XHat - FBS.Tau*DescrepencyGradient;
-    XHat(XHat == 0) = 1e-8;
+    ZNew = ZOld - Tau*DescrepencyGradient;
+    ZNew(ZNew == 0) = 1e-14;
     
-    SoftThresholding = XHat.*max(0, 1-FBS.Tau*Lambda./(abs(XHat)));
+    SoftThresholding = ZNew.*max(0, 1 - Tau*Lambda./(abs(ZNew)));
     
-    XHat = SoftThresholding;
-    
+    ZNew = SoftThresholding;
+    ZNew = ZNew +Mu*(ZNew - ZOld);
+    ZOld = ZNew; 
     DescrepencyGradientCheck = norm(DescrepencyGradient,2);
     
-    if (mod(IterationCount,FBS.DisplayFrequency)==0)
+    if (mod(IterationCount,DisplayFreq)==0)
         fprintf(' lfbs log10(Discrepency) = %d \n',log10(DescrepencyResidualCheck(IterationCount)));
         fprintf(' lfbs log10(DescrepencyGradientient) = %d \n',log10(DescrepencyGradientCheck));
         fprintf(' lfbs Iter = %d \n',IterationCount);

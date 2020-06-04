@@ -4,8 +4,6 @@ function [D] = CalcDiscrepancy(X,Measurement,PhiComponent,FL2Norm,Mesh)
 SourceNum = length(X);
 IntensityNormalized = X./FL2Norm';
 Estimates = sum(bsxfun(@times,PhiComponent,reshape(IntensityNormalized,1,1,SourceNum)),3);
-dx = Mesh.ThetaQ(1,:)';
-dy = Mesh.PsiQ(:,1);
-D = Estimates - Measurement;
+D = norm(Estimates - Measurement,2);
 end
 

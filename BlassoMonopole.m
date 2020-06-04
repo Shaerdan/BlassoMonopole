@@ -3,7 +3,7 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-6;
+Lambda = 1e-5;
 
 %%% Mesh Control
 meshsize_r = 30; meshsize_theta = 30; meshsize_psi = 30;
@@ -38,7 +38,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FISTA';               % choose 'FBS' or 'fminunc' or 'FISTA';
+LinearSolver = 'RelaxedFBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -47,15 +47,17 @@ NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 
 %% FBS solver control:
 FBS.Tau = 1e-2;
-FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
+FBS.GradTol = 1e-10; FBS.StepTol = 1e-16;
 FBS.Iteration = 1e5;
-FBS.DisplayFrequency = 100000;
+FBS.DisplayFrequency = 1000;
+FBS.Mu = -0.1;
 
 %% FISTA solver constrol:
 FISTAopts.lambda = Lambda;
 FISTAopts.max_iter = 1e5;
 FISTAopts.tol =1e-10;
 FISTAopts.verbose = 'true';
+FISTAopts.L = 0;
 
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
@@ -98,8 +100,8 @@ for ii = 1:GlobalIteration
     ThetaUpdate = Mesh.ThetaS(IndexTheta);
     PsiUpdate = Mesh.PsiS(IndexPsi);
     
-    figure(2)
-    bar([RadiusUpdate, ThetaUpdate, PsiUpdate]);
+%     figure(2)
+%     bar([RadiusUpdate, ThetaUpdate, PsiUpdate]);
     
     %%% Termination condition for the global interation
     if (EtaMax(ii) <=1)
@@ -120,40 +122,34 @@ for ii = 1:GlobalIteration
     InitialIntensity = [Solution.Intensity, IntensityUpdate];
     PhiComponent = ComputePotentialComponent(Solution.Location,Mesh);
     FL2Norm = L2NormF(Solution.Location,Mesh);
-    SourceNumUpdate = length(InitialIntensity);
+    SourceNumUpdate = ii;
     % Choose solvers:
     switch LinearSolver
         case 'FBS'
+            LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
+                SourceNumUpdate);
+            FBS.tau = 1/LipschitzConst;
             Solution.Intensity = FBSSolver(InitialIntensity,Data.Measurement,...
-                FBS.Iteration,PhiComponent,Mesh,...
-                FBS.GradTol,FBS.StepTol,FBS.Tau,Lambda,...
-                FBS.DisplayFrequency,FL2Norm);
-         case 'FISTA'
-             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
-                 SourceNumUpdate);
-             Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
-                 Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,FISTAopts), InitialIntensity',...
-                  LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
-                  PhiComponent,FL2Norm,Mesh)); 
-              Solution.Intensity = Solution.Intensity'; 
-        case 'fminunc'
-            SourceNumUpdate = ii;
-            IntensityMax = 5;
-            % Lower bound = -IntensityMax* RealIntensity:
-            LowerBoundLinear = -IntensityMax*ones(1,SourceNumUpdate)';
-            % Upper bound =  IntensityMax* RealIntensity
-            UpperBoundLinear = IntensityMax*ones(1,SourceNumUpdate)';
-            problem = createOptimProblem('fmincon','x0',InitialIntensity,...
-                'ub',UpperBoundLinear,'lb',LowerBoundLinear, ...
-                'objective',@(X) ObjectiveFuncLinearLasso(X,...
-                Data.Measurement,PhiComponent,Mesh,FL2Norm,Lambda),...
-                'options',Opts);
-            [Solution.Intensity] = fmincon(problem);
+                FBS,PhiComponent,Mesh,Lambda,FL2Norm);
+        case 'FISTA'
+            LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
+                SourceNumUpdate); 
+            Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
+                Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,FISTAopts), InitialIntensity',...
+                LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
+                PhiComponent,FL2Norm,Mesh));
+            Solution.Intensity = Solution.Intensity';
+        case 'RelaxedFBS'
+            LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
+                SourceNumUpdate);
+            FBS.tau = 1/LipschitzConst;
+            Solution.Intensity = RelaxedFBSSolver(InitialIntensity,Data.Measurement,...
+                FBS,PhiComponent,Mesh,Lambda,FL2Norm);
     end
     
     % Debug line, output intensities:
-    figure(22)
-    bar(Solution.Intensity);
+%     figure(3)
+%     bar(Solution.Intensity);
     % End of source intensity update
     
     %% Update source intensity and locations by solving anonlinear Lasso problem:
@@ -191,37 +187,37 @@ for ii = 1:GlobalIteration
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate);
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end);
     end
-
+    
     % Debug line, output the source intensities and locations:
-    figure(23)
-    bar(Solution.Intensity);
-    figure(24)
-    bar(Solution.Location);
+%     figure(4)
+%     bar(Solution.Intensity);
+%     figure(5)
+%     bar(Solution.Location);
     % End of source locations and intensities update.
     
     %% Display The Solution:
-    IntensitySoln = Solution.Intensity;
-    RadiusSoln = Solution.Location(1:SourceNumUpdate);
-    ThetaSoln = Solution.Location(SourceNumUpdate+1:2*SourceNumUpdate);
-    PsiSoln = Solution.Location(2*SourceNumUpdate+1:3*SourceNumUpdate);
-    figure(11)
-    CartesianXSoln = RadiusSoln.*sin(ThetaSoln).*cos(PsiSoln);
-    CartesianYSoln = RadiusSoln.*sin(ThetaSoln).*sin(PsiSoln);
-    CartesianZSoln = RadiusSoln.*cos(ThetaSoln);
-    CartesianXReal = RadiusReal.*sin(ThetaReal).*cos(PsiReal);
-    CartesianYReal = RadiusReal.*sin(ThetaReal).*sin(PsiReal);
-    CartesianZReal = RadiusReal.*cos(ThetaReal);
-    [XSphere,YSphere,ZSphere] = sphere;
-    h = surf(XSphere, YSphere, ZSphere,'FaceColor','none');
-    set(h, 'FaceAlpha', 0.2);
-    hold on;
-    for i = 1:SourceNum
-        scatter3(CartesianXReal(i),CartesianYReal(i),CartesianZReal(i),100,'r','linewidth',1.5);
-    end
-    for i = 1:SourceNumUpdate
-        scatter3(CartesianXSoln(i),CartesianYSoln(i),CartesianZSoln(i),100,'k','*','linewidth',1.5);
-        hold on;
-    end
+%     IntensitySoln = Solution.Intensity;
+%     RadiusSoln = Solution.Location(1:SourceNumUpdate);
+%     ThetaSoln = Solution.Location(SourceNumUpdate+1:2*SourceNumUpdate);
+%     PsiSoln = Solution.Location(2*SourceNumUpdate+1:3*SourceNumUpdate);
+%     figure(6)
+%     CartesianXSoln = RadiusSoln.*sin(ThetaSoln).*cos(PsiSoln);
+%     CartesianYSoln = RadiusSoln.*sin(ThetaSoln).*sin(PsiSoln);
+%     CartesianZSoln = RadiusSoln.*cos(ThetaSoln);
+%     CartesianXReal = RadiusReal.*sin(ThetaReal).*cos(PsiReal);
+%     CartesianYReal = RadiusReal.*sin(ThetaReal).*sin(PsiReal);
+%     CartesianZReal = RadiusReal.*cos(ThetaReal);
+%     [XSphere,YSphere,ZSphere] = sphere;
+%     h = surf(XSphere, YSphere, ZSphere,'FaceColor','none');
+%     set(h, 'FaceAlpha', 0.2);
+%     hold on;
+%     for i = 1:SourceNum
+%         scatter3(CartesianXReal(i),CartesianYReal(i),CartesianZReal(i),100,'r','linewidth',1.5);
+%     end
+%     for i = 1:SourceNumUpdate
+%         scatter3(CartesianXSoln(i),CartesianYSoln(i),CartesianZSoln(i),100,'k','*','linewidth',1.5);
+%         hold on;
+%     end
     
 end
 
