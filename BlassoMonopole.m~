@@ -9,9 +9,9 @@ Lambda = 1e-5;
 meshsize_r = 30; meshsize_theta = 30; meshsize_psi = 30;
 
 %% Souce Control:
-RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
+RadiusReal = 0.5; SourceNum = 2; % Real source depths and source number setup.
 IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [0.4, 0.9]; PsiReal = [1.2, 1.8]; % Real source angle setup.
+ThetaReal = [0.4, 0.5]; PsiReal = [1.2, 1.3]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -103,7 +103,7 @@ for ii = 1:GlobalIteration
     PsiUpdate = Mesh.PsiS(IndexPsi);
     %%% Refine Steps: solve argmin[-(1/2)*Eta^2]:
     LowerBoundRefine = [0, 0, 0]';
-    UpperBoundRefine = [0.8, pi,2*pi]';
+    UpperBoundRefine = [0.9, pi,2*pi]';
     InitialSolution = [RadiusUpdate,ThetaUpdate,PsiUpdate]';
     %     OptLBFGSB = struct('x0',InitialSolution,'m',20,'factr',1e0,...
     %         'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
@@ -113,7 +113,7 @@ for ii = 1:GlobalIteration
         'ub',UpperBoundRefine,'lb',LowerBoundRefine, ...
         'objective',@(X) ObjEta(X,Lambda, Mesh,P),...
         'options', Opts);
-    SolutionLoc = fmincon(problem);
+    SolutionLoc = fminunc(problem);
     RadiusUpdate = SolutionLoc(1);
     ThetaUpdate = SolutionLoc(2);
     PsiUpdate = SolutionLoc(3);

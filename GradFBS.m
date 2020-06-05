@@ -9,8 +9,8 @@ function [Grad,Descrepency] = GradFBS(I,Measurement,Mesh,PhiComponent,FL2Norm)
 SourceNum = length(I);
 IntensityNormalized = I./FL2Norm;
 Estimates = sum(bsxfun(@times,PhiComponent,reshape(IntensityNormalized,1,1,SourceNum)),3);
-dx = Mesh.ThetaQ(1,:)';
-dy = Mesh.PsiQ(:,1);
+dx = Mesh.ThetaLine';
+dy = Mesh.PsiLine';
 Descrepency = Estimates - Measurement;
 Grad = zeros(1,SourceNum);
 

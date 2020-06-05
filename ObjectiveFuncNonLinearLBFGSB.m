@@ -1,9 +1,10 @@
-function [J,GradientPseudo] = ObjectiveFuncNonLinearLBFGSB(X,Measurement,Lambda, Mesh,FL2Norm)
+function [J,GradientPseudo] = ObjectiveFuncNonLinearLBFGSB(X,Measurement,Lambda, Mesh)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 SourceNum = length(X)/4;
-IntensityNormalized = X(1:SourceNum)./FL2Norm;
 Locations = X(SourceNum +1:end);
+FL2Norm = L2NormF(Locations,Mesh);
+IntensityNormalized = X(1:SourceNum)./FL2Norm';
 
 [PhiComponent,CosGamma,DistPQ] = ComputePotentialComponent(Locations,Mesh);
 

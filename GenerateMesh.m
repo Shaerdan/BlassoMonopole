@@ -11,7 +11,7 @@ hr = 1/MeshSize_R;
 ht = pi/MeshSize_Theta;
 hp = 2*pi/MeshSize_Psi;
 
-r   = 0:hr:0.999; 
+r   = 0:hr:0.8; 
 Mesh.ThetaLine=0:ht:pi; 
 Mesh.PsiLine = 0:hp:2*pi; 
 
