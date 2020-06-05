@@ -38,7 +38,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'RelaxedFBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
+LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
