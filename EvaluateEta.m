@@ -8,8 +8,8 @@ function [Eta] = EvaluateEta(Lambda,Mesh,P)
 %          dMesh.Q = sin(Mesh.ThetaQ) * dMesh.ThetaQ * dMesh.PsiQ. 
 %   F  --- The integral kernel, ref Equation (45), Page 6 of the report.
 %   FL2Norm --- L2Norm of F;
-dx = Mesh.ThetaLine';
-dy = Mesh.PsiLine';
+dx = Mesh.ThetaQLine';
+dy = Mesh.PsiQLine';
 Eta = zeros(Mesh.LengthRadiusS,Mesh.LengthThetaS,Mesh.LengthPsiS);
 for i=1:Mesh.LengthRadiusS
     for j=1:Mesh.LengthThetaS

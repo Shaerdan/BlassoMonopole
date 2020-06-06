@@ -6,7 +6,8 @@ close all;
 Lambda = 1e-4;
 
 %%% Mesh Control
-meshsize_r = 10; meshsize_theta = 20; meshsize_psi = 20;
+MeshPointSSize_Radius = 10; meshsize_theta = 20; meshsize_psi = 20;
+
 
 %% Souce Control:
 RadiusReal = 0.7; SourceNum = 4; % Real source depths and source number setup.
@@ -26,7 +27,7 @@ LocationReal (2*SourceNum+1:end) = PsiReal; % Store psi component ...
 % Mesh.PsiQ -- Psi component of Q mesh.
 % Mesh.ThetaS -- Theta component of S mesh.
 % Mesh.PsiS -- Psi component of S mesh.
-Mesh = GenerateMesh(meshsize_r,meshsize_theta,meshsize_psi);
+Mesh = GenerateMesh(MeshPointSSize_Radius,meshsize_theta,meshsize_psi);
 
 %% Create measurement data.
 

@@ -6,7 +6,8 @@ close all;
 Lambda = 1e-4;
 
 %%% Mesh Control
-meshsize_r = 10; meshsize_theta = 20; meshsize_psi = 20;
+MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
+MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; RadiusCap = 0.72;
 
 %% Souce Control:
 RadiusReal = 0.7; SourceNum = 4; % Real source depths and source number setup.
@@ -26,7 +27,7 @@ LocationReal (2*SourceNum+1:end) = PsiReal; % Store psi component ...
 % Mesh.PsiQ -- Psi component of Q mesh.
 % Mesh.ThetaS -- Theta component of S mesh.
 % Mesh.PsiS -- Psi component of S mesh.
-Mesh = GenerateMesh(meshsize_r,meshsize_theta,meshsize_psi);
+Mesh = GenerateMesh(MeshPointSSize,MeshPointQSize,RadiusCap);
 
 %% Create measurement data.
 
@@ -38,7 +39,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
+LinearSolver = 'RelaxedFBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -48,9 +49,9 @@ NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
 %% FBS solver control:
 FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-16;
-FBS.Iteration = 1e5;
-FBS.DisplayFrequency = 1000;
-FBS.Mu = 0.9;
+FBS.Iteration = 1e4;
+FBS.DisplayFrequency = 100;
+FBS.Mu = 0.4;
 
 %% FISTA solver constrol:
 FISTAopts.lambda = Lambda;
@@ -103,7 +104,7 @@ for ii = 1:GlobalIteration
     PsiUpdate = Mesh.PsiS(IndexPsi);
     %%% Refine Steps: solve argmin[-(1/2)*Eta^2]:
     LowerBoundRefine = [0, 0, 0]';
-    UpperBoundRefine = [0.8, pi,2*pi]';
+    UpperBoundRefine = [RadiusCap, pi,2*pi]';
     InitialSolution = [RadiusUpdate,ThetaUpdate,PsiUpdate]';
     %     OptLBFGSB = struct('x0',InitialSolution,'m',20,'factr',1e0,...
     %         'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
@@ -180,7 +181,7 @@ for ii = 1:GlobalIteration
         repmat(0.001,1,SourceNumUpdate),zeros(1,SourceNumUpdate),...
         zeros(1,SourceNumUpdate)];
     UpperBoundNonLinear = [IntensityMax*ones(1,SourceNumUpdate),...
-        repmat(0.999,1,SourceNumUpdate),repmat(pi,1,SourceNumUpdate),...
+        repmat(RadiusCap,1,SourceNumUpdate),repmat(pi,1,SourceNumUpdate),...
         repmat(2*pi,1,SourceNumUpdate)];
     
     % Choose nonlinear solver:

@@ -8,14 +8,14 @@ function [Eta] = ObjEta(X,Lambda,Mesh,P)
 %   FL2Norm --- L2Norm of F;
 %% 
 
-dx = Mesh.ThetaLine';
-dy = Mesh.PsiLine';
+dx = Mesh.ThetaQLine';
+dy = Mesh.PsiQLine';
 CosGamma = cos(X(2)).*cos(Mesh.ThetaQ)+sin(X(2)).*...
     sin(Mesh.ThetaQ).*cos(X(3)- Mesh.PsiQ);
 DistanceSQ  = sqrt(1 + X(1).^2 - 2* X(1).*CosGamma);
 F      = (2./DistanceSQ) - log(1-X(1).*CosGamma + DistanceSQ);
 Integrand0 = (F.^2)*sin(Mesh.ThetaQ);
-FL2Norm = sqrt(trapz(Mesh.PsiLine', trapz(Mesh.ThetaLine',Integrand0,2)));
+FL2Norm = sqrt(trapz(dy, trapz(dx,Integrand0,2)));
 F_Normalized  = F./FL2Norm;
 Integrand1 = F_Normalized.*P.*sin(Mesh.ThetaQ);
 Eta = abs(trapz(dy, trapz(dx,Integrand1,2)))/Lambda;
