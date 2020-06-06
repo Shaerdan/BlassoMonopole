@@ -10,9 +10,9 @@ MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
 MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; RadiusCap = 0.72;
 
 %% Souce Control:
-RadiusReal = 0.7; SourceNum = 4; % Real source depths and source number setup.
-IntensityReal = [0.3 -0.5 -0.5 0.7]; % Real source intensity setup.
-ThetaReal = [0.4, 0.9, 1.5 0.5]; PsiReal = [1.2, 1.8,0.2,1.3]; % Real source angle setup.
+RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
+IntensityReal = [1 -1]; % Real source intensity setup.
+ThetaReal = [0.4, 0.9]; PsiReal = [1.2, 1.8]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -39,7 +39,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'RelaxedFBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
+LinearSolver = 'FBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -67,7 +67,7 @@ Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
 
 
 %% Initializing the Sliding Frank Wolfe iteration %%%%%%
-GlobalIteration = 1000;
+GlobalIteration = 100;
 
 Solution.Intensity= ([]); Solution.Location = ([]);
 % Solution.Radius .Theta .Psi below is used to update the Location assembly vector.
@@ -166,8 +166,8 @@ for ii = 1:GlobalIteration
     end
     
     % Debug line, output intensities:
-    %     figure(3)
-    %     bar(Solution.Intensity);
+        figure(3)
+        bar(Solution.Intensity);
     % End of source intensity update
     
     %% Update source intensity and locations by solving anonlinear Lasso problem:
@@ -207,8 +207,8 @@ for ii = 1:GlobalIteration
     end
     
     % Debug line, output the source intensities and locations:
-    figure(4)
-    bar(Solution.Intensity);
+%     figure(4)
+%     bar(Solution.Intensity);
     %     figure(5)
     %     bar(Solution.Location);
     % End of source locations and intensities update.

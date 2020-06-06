@@ -14,7 +14,8 @@ LeastSquareTerm = norm(Descrepency,2);
 RegularizationTerm = norm(IntensityNormalized,1);
 
 J = 0.5*LeastSquareTerm^2 + Lambda*RegularizationTerm;
-GradientPseudo = GradPseudoLBFGSB(X,Descrepency,PhiComponent,CosGamma,DistPQ,Mesh,FL2Norm, Lambda);
+GradientPseudo = GradPseudoLBFGSB(X,Descrepency,PhiComponent,CosGamma,...
+    DistPQ,Mesh,FL2Norm, Lambda);
 GradientPseudo = GradientPseudo';
 end
 
