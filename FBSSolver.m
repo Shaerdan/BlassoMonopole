@@ -21,9 +21,8 @@ while (GradCheck > FBS.GradTol && IterationCount < FBS.Iteration && StepSize > F
     StepSize = abs(DescrepencyResidualCheck(IterationCount+1) - DescrepencyResidualCheck(IterationCount));
     
     XHat = XHat - FBS.Tau*DescrepencyGradient;
-    XHat(XHat == 0) = 1e-8;
     
-    SoftThresholding = XHat.*max(0, 1-FBS.Tau*Lambda./(abs(XHat)));
+    SoftThresholding = sign(XHat).*max(0, abs(XHat) - Lambda);
     
     XHat = SoftThresholding;
     

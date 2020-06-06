@@ -3,15 +3,15 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-5;
+Lambda = 1e-4;
 
 %%% Mesh Control
-meshsize_r = 30; meshsize_theta = 30; meshsize_psi = 30;
+meshsize_r = 10; meshsize_theta = 20; meshsize_psi = 20;
 
 %% Souce Control:
-RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
-IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [0.4, 0.9]; PsiReal = [1.2, 1.8]; % Real source angle setup.
+RadiusReal = 0.7; SourceNum = 4; % Real source depths and source number setup.
+IntensityReal = [0.3 -0.5 -0.5 0.7]; % Real source intensity setup.
+ThetaReal = [0.4, 0.9, 1.5 0.5]; PsiReal = [1.2, 1.8,0.2,1.3]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -38,7 +38,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FBS';               % choose 'FBS' or 'fminunc' or 'FISTA';
+LinearSolver = 'FBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -50,7 +50,7 @@ FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-16;
 FBS.Iteration = 1e5;
 FBS.DisplayFrequency = 1000;
-FBS.Mu = -0.1;
+FBS.Mu = 0.9;
 
 %% FISTA solver constrol:
 FISTAopts.lambda = Lambda;
