@@ -22,13 +22,12 @@ while (GradCheck > FBS.GradTol && IterationCount < FBS.Iteration && StepSize > F
     StepSize = abs(DescrepencyResidualCheck(IterationCount+1) - DescrepencyResidualCheck(IterationCount));
     
     XNew = ZOld - FBS.Tau*DescrepencyGradient;
-    
     SoftThresholding = sign(XNew).*max(0, abs(XNew)-Lambda);
-    
     XNew = SoftThresholding;
     ZNew = XNew +FBS.Mu*(XNew - XOld);
+    XOld = XNew;        
     ZOld = ZNew; 
-    XOld = XNew;
+
     DescrepencyGradientCheck = norm(DescrepencyGradient,2);
     
     if (mod(IterationCount,FBS.DisplayFrequency)==0)

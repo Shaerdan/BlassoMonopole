@@ -39,7 +39,7 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 % 'FBS' -- linear proximal forward backward splitting;
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 % and bfgs approximation of the Hessian.
-LinearSolver = 'FBS';               % choose 'FBS' or 'RelaxedFBS' or 'FISTA';
+LinearSolver = 'fbs';               % choose 'fbs' or 'relaxedfbs' or 'fista' or 'fmincon';
 % Set the nonlinear solver:
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
@@ -143,13 +143,13 @@ for ii = 1:GlobalIteration
     SourceNumUpdate = ii;
     % Choose solvers:
     switch LinearSolver
-        case 'FBS'
+        case 'fbs'
             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
                 SourceNumUpdate);
             FBS.tau = 1/LipschitzConst;
             Solution.Intensity = FBSSolver(InitialIntensity,Data.Measurement,...
                 FBS,PhiComponent,Mesh,Lambda,FL2Norm);
-        case 'FISTA'
+        case 'fista'
             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
                 SourceNumUpdate);
             Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
@@ -157,17 +157,25 @@ for ii = 1:GlobalIteration
                 LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
                 PhiComponent,FL2Norm,Mesh));
             Solution.Intensity = Solution.Intensity';
-        case 'RelaxedFBS'
+        case 'relaxedfbs'
             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
                 SourceNumUpdate);
             FBS.tau = 1/LipschitzConst;
             Solution.Intensity = RelaxedFBSSolver(InitialIntensity,Data.Measurement,...
                 FBS,PhiComponent,Mesh,Lambda,FL2Norm);
+        case 'fmincon'
+            IntensityMax = 5;
+            lb0 = -IntensityMax*ones(1,SourceNumUpdate)';    % Lower bound = -S_max* RealIntensity
+            ub0 = IntensityMax*ones(1,SourceNumUpdate)';     % Upper bound =  S_max* RealIntensity
+            problem = createOptimProblem('fmincon','x0',InitialIntensity,'ub',ub0,'lb',lb0, ...
+                'objective',@(X) ObjectiveFuncLinearLasso(X,Data.Measurement,PhiComponent,...
+                Mesh,FL2Norm,Lambda),'options',Opts);
+            [Solution.Intensity] = fmincon(problem);
     end
     
     % Debug line, output intensities:
-        figure(3)
-        bar(Solution.Intensity);
+    figure(3)
+    bar(Solution.Intensity);
     % End of source intensity update
     
     %% Update source intensity and locations by solving anonlinear Lasso problem:
@@ -207,8 +215,8 @@ for ii = 1:GlobalIteration
     end
     
     % Debug line, output the source intensities and locations:
-%     figure(4)
-%     bar(Solution.Intensity);
+    %     figure(4)
+    %     bar(Solution.Intensity);
     %     figure(5)
     %     bar(Solution.Location);
     % End of source locations and intensities update.

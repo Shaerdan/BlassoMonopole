@@ -30,7 +30,7 @@ for i = 1:SourceNum
     PDotQ = Locations(i)*CosGamma(:,:,i);
     Di_DistPQ = (Locations(i)-CosGamma(:,:,i))./DistPQ(:,:,i);
     Di_PDotQ  = CosGamma(:,:,i);
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
+    Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
     Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
@@ -43,7 +43,7 @@ for i = 1:SourceNum
         .*cos(Mesh.PsiQ - Locations(i+2*SourceNum));
     Di_DistPQ = -(Locations(i)*Di_CosGamma./DistPQ(:,:,i));
     Di_PDotQ  = Locations(i)*Di_CosGamma;
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
+    Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
     Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
@@ -56,7 +56,7 @@ for i = 1:SourceNum
         .*sin(Mesh.PsiQ - Locations(i+2*SourceNum));
     Di_DistPQ = -(Locations(i)*Di_CosGamma./DistPQ(:,:,i));
     Di_PDotQ  = Locations(i)*Di_CosGamma;
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
+    Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
     Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
