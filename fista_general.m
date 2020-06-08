@@ -88,4 +88,4 @@ function [X, iter, min_cost] = fista_general(grad, proj, Xinit, L, opts, calc_F)
     if nargout == 3 
         min_cost = feval(calc_F, X);
     end 
-end 
+end

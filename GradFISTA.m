@@ -14,7 +14,7 @@ dy = Mesh.PsiQ(:,1);
 Descrepency = Estimates - Measurement;
 Grad = zeros(1,SourceNum);
 
-%% Compute d(||Estimates - Measurement||_2^2)/d(Intensity):
+%% Compute d(0.5*||Estimates - Measurement||_2^2)/d(Intensity):
 for i = 1:SourceNum
    Diff_Estimates_Intensity = PhiComponent(:,:,i)/FL2Norm(i);
    Integrand = Descrepency.*Diff_Estimates_Intensity.*sin(Mesh.ThetaQ);

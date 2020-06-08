@@ -1,4 +1,4 @@
-function X = proj_l1(U, opts)
+function X = proj_l1(U,Lambda)
 % function X = proj_l1(U, opts)
 % Description:
 %   Soft Thresoding function. Solve one of the following problems:
@@ -28,18 +28,7 @@ function X = proj_l1(U, opts)
     %     lambda = lambda;
     % end 
     %%
-    if ~isfield(opts, 'pos')
-        opts.pos = false;
-    end 
-    %%
-    lambda = opts.lambda;
-    if numel(lambda) > 1 && size(lambda, 2) == 1 % column vector 
-        lambda = repmat(lambda, 1, size(U, 2));
-    end 
-    %%
-    if opts.pos 
-        X = max(0, U - lambda);
-    else 
-        X = max(0, U - lambda) + min(0, U + lambda);
-    end
+
+        X = max(0, abs(U) - Lambda).*sign(U);
+
 end

@@ -5,14 +5,14 @@ function [LipschitzConst] = ComputeLipschitzConstant(Mesh,PhiComponent,...
 D = sin(Mesh.ThetaQ);
 dx = Mesh.ThetaQLine';
 dy = Mesh.PsiQLine';
-Ai = zeros(size(PhiComponent));
+AiSquare = zeros(size(PhiComponent));
+Ai = AiSpuare;
 for i = 1:SourceNumUpdate
     Ai(:,:,i) = PhiComponent(:,:,i)./FL2Norm(i);
 end
-AiSum = sum(Ai,3);
 AiNorm = sqrt(sum(Ai.^2,3));
-Integrand = AiNorm.*AiSum.*D;
-LipschitzConst = abs(trapz(dy,trapz(dx,Integrand,2)));
+Integrand = AiNorm.*Ai;
+LipschitzConst = sum(trapz(dy,trapz(dx,AiSquare,2)));
 
 end
 

@@ -10,9 +10,9 @@ MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
 MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; RadiusCap = 0.72;
 
 %% Souce Control:
-RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
-IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [0.4, 0.9]; PsiReal = [1.2, 1.8]; % Real source angle setup.
+RadiusReal = 0.7; SourceNum = 3; % Real source depths and source number setup.
+IntensityReal = [1 -2 1]; % Real source intensity setup.
+ThetaReal = [0.4, 0.9, 2.5]; PsiReal = [1.2, 1.8, 0.2]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -152,8 +152,9 @@ for ii = 1:GlobalIteration
         case 'fista'
             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
                 SourceNumUpdate);
+            LipschitzConst = 10*LipschitzConst;
             Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
-                Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,FISTAopts), InitialIntensity',...
+                Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,Lambda), InitialIntensity',...
                 LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
                 PhiComponent,FL2Norm,Mesh));
             Solution.Intensity = Solution.Intensity';
