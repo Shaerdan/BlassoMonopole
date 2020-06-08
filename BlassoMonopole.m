@@ -7,12 +7,13 @@ Lambda = 1e-4;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
-MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; RadiusCap = 0.72;
+MeshPointQSize.Theta = 150; MeshPointQSize.Psi = 150; Cap.Radius = 0.71;
+Cap.Theta = pi; Cap.Psi = pi;
 
 %% Souce Control:
-RadiusReal = 0.7; SourceNum = 3; % Real source depths and source number setup.
-IntensityReal = [1 -2 1]; % Real source intensity setup.
-ThetaReal = [0.4, 0.9, 2.5]; PsiReal = [1.2, 1.8, 0.2]; % Real source angle setup.
+RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
+IntensityReal = [1 -1]; % Real source intensity setup.
+ThetaReal = [0.4, 1.9]; PsiReal = [0.4, 1.9]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -27,7 +28,7 @@ LocationReal (2*SourceNum+1:end) = PsiReal; % Store psi component ...
 % Mesh.PsiQ -- Psi component of Q mesh.
 % Mesh.ThetaS -- Theta component of S mesh.
 % Mesh.PsiS -- Psi component of S mesh.
-Mesh = GenerateMesh(MeshPointSSize,MeshPointQSize,RadiusCap);
+Mesh = GenerateMesh(MeshPointSSize,MeshPointQSize,Cap);
 
 %% Create measurement data.
 
@@ -44,12 +45,12 @@ LinearSolver = 'fbs';               % choose 'fbs' or 'relaxedfbs' or 'fista' or
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 %  and bfgs approximation of the Hessian.
-NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fminunc';
+NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fmincon';
 
 %% FBS solver control:
 FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-16;
-FBS.Iteration = 1e4;
+FBS.Iteration = 8e4;
 FBS.DisplayFrequency = 100;
 FBS.Mu = 0.4;
 
@@ -104,7 +105,7 @@ for ii = 1:GlobalIteration
     PsiUpdate = Mesh.PsiS(IndexPsi);
     %%% Refine Steps: solve argmin[-(1/2)*Eta^2]:
     LowerBoundRefine = [0, 0, 0]';
-    UpperBoundRefine = [RadiusCap, pi,2*pi]';
+    UpperBoundRefine = [Cap.Radius, Cap.Theta, Cap.Psi]';
     InitialSolution = [RadiusUpdate,ThetaUpdate,PsiUpdate]';
     %     OptLBFGSB = struct('x0',InitialSolution,'m',20,'factr',1e0,...
     %         'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
@@ -190,20 +191,20 @@ for ii = 1:GlobalIteration
         repmat(0.001,1,SourceNumUpdate),zeros(1,SourceNumUpdate),...
         zeros(1,SourceNumUpdate)];
     UpperBoundNonLinear = [IntensityMax*ones(1,SourceNumUpdate),...
-        repmat(RadiusCap,1,SourceNumUpdate),repmat(pi,1,SourceNumUpdate),...
+        repmat(Cap.Radius,1,SourceNumUpdate),repmat(pi,1,SourceNumUpdate),...
         repmat(2*pi,1,SourceNumUpdate)];
     
     % Choose nonlinear solver:
     switch NonLinearSolver
         case 'lbfgsc'
-            OptLBFGSB = struct('x0',InitialSolution','m',20,'factr',1e0,...
+            OptLBFGSB = struct('x0',InitialSolution','m',10,'factr',1e0,...
                 'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
-        case 'fminunc'
+        case 'fmincon'
             problem = createOptimProblem('fmincon','x0',InitialSolution,...
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
                 'objective',@(X) ObjectiveFuncNonLinearFminunc(X,Data.Measurement,...
@@ -215,6 +216,10 @@ for ii = 1:GlobalIteration
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end);
     end
     
+    % Update Solution Location Components:
+    Solution.Radius = Solution.Location(1:ii);
+    Solution.Theta  = Solution.Location(ii+1:2*ii);
+    Solution.Psi    = Solution.Location(2*ii+1:3*ii);
     % Debug line, output the source intensities and locations:
     %     figure(4)
     %     bar(Solution.Intensity);
@@ -245,6 +250,7 @@ for ii = 1:GlobalIteration
         scatter3(CartesianXSoln(i),CartesianYSoln(i),CartesianZSoln(i),100,'k','*','linewidth',1.5);
         hold on;
     end
+    hold off;
     
 end
 
