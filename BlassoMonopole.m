@@ -3,17 +3,17 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-4;
+Lambda = 1e-5;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
 MeshPointQSize.Theta = 150; MeshPointQSize.Psi = 150; Cap.Radius = 0.71;
-Cap.Theta = pi; Cap.Psi = pi;
+Cap.Theta = pi/2; Cap.Psi = pi/2;
 
 %% Souce Control:
 RadiusReal = 0.7; SourceNum = 2; % Real source depths and source number setup.
 IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [0.4, 1.9]; PsiReal = [0.4, 1.9]; % Real source angle setup.
+ThetaReal = [0.2, 1.2]; PsiReal = [0.2, 1.2]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.

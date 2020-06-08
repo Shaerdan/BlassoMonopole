@@ -32,7 +32,7 @@ for i = 1:SourceNum
     Di_PDotQ  = CosGamma(:,:,i);
     Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*SIN1;
     GradDescrepency(i+SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
@@ -45,7 +45,7 @@ for i = 1:SourceNum
     Di_PDotQ  = Locations(i)*Di_CosGamma;
     Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*SIN1;
     GradDescrepency(i+2*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
@@ -58,7 +58,7 @@ for i = 1:SourceNum
     Di_PDotQ  = Locations(i)*Di_CosGamma;
     Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
         - (-Di_PDotQ + Di_DistPQ)./(1-PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi,2))/FL2Norm(i));
+    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/FL2Norm(i));
     Di_Estimate = I(i)*(FL2Norm(i)*Di_PhiPi - PhiPi(:,:,i).*Di_GPi)/(FL2Norm(i))^2;
     Integrand = Descrepency.*Di_Estimate.*SIN1;
     GradDescrepency(i+3*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
