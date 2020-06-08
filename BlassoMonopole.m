@@ -7,7 +7,7 @@ Lambda = 1e-5;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
-MeshPointQSize.Theta = 150; MeshPointQSize.Psi = 150; Cap.Radius = 0.71;
+MeshPointQSize.Theta = 50; MeshPointQSize.Psi = 50; Cap.Radius = 0.71;
 Cap.Theta = pi/2; Cap.Psi = pi/2;
 
 %% Souce Control:
@@ -115,7 +115,7 @@ for ii = 1:GlobalIteration
         'ub',UpperBoundRefine,'lb',LowerBoundRefine, ...
         'objective',@(X) ObjEta(X,Lambda, Mesh,P),...
         'options', Opts);
-    SolutionLoc = fmincon(problem);
+    [SolutionLoc,EtaMin] = fmincon(problem);
     RadiusUpdate = SolutionLoc(1);
     ThetaUpdate = SolutionLoc(2);
     PsiUpdate = SolutionLoc(3);

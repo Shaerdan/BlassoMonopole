@@ -53,7 +53,7 @@ for i = 1:SourceNum
     
     %% dObjectiveFunction/dPsi
     Di_CosGamma =  -sin(Locations(i+SourceNum)).*SIN1...
-        .*sin(Mesh.PsiQ - Locations(i+2*SourceNum));
+        .*sin(Locations(i+2*SourceNum) - Mesh.PsiQ);
     Di_DistPQ = -(Locations(i)*Di_CosGamma./DistPQ(:,:,i));
     Di_PDotQ  = Locations(i)*Di_CosGamma;
     Di_PhiPi  = (-1./(DistPQ(:,:,i).^3)).*Di_DistPQ ...
