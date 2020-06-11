@@ -1,4 +1,4 @@
-function Grad = GradFBS(Discrepancy,PhiComponent,Mesh,FL2Norm, SourceNum)
+function [Grad] = GradFBS(I,Discrepancy,PhiComponent,Mesh,FL2Norm, SourceNum)
 
 %%	Compute the gradient of ||Estimates - Measurement||_2^2;
 %   I --- Source intensity,
