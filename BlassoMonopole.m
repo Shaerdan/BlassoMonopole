@@ -3,17 +3,17 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-4;
+Lambda = 1e-5;
 
 %%% Mesh Control
-MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 20; MeshPointSSize.Psi = 20;
-MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
-Cap.Theta = pi; Cap.Psi = 2*pi;
+MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
+MeshPointQSize.Theta = 500; MeshPointQSize.Psi = 500; Cap.Radius = 0.9;
+Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
 
 %% Souce Control:
-RadiusReal = 0.8; SourceNum = 2; % Real source depths and source number setup.
-IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [0.2, 0.3]; PsiReal = [0.2, 0.3]; % Real source angle setup.
+RadiusReal = 0.8; SourceNum = 3; % Real source depths and source number setup.
+IntensityReal = [1 -0.5 -0.5]; % Real source intensity setup.
+ThetaReal = [1.2, 0.2, 0.6]; PsiReal = [1.2, 0.2, 0.6]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -49,8 +49,8 @@ NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fmincon';
 
 %% FBS solver control:
 FBS.Tau = 1e-2;
-FBS.GradTol = 1e-10; FBS.StepTol = 1e-16;
-FBS.Iteration = 2e5;
+FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
+FBS.Iteration = 5e5;
 FBS.DisplayFrequency = 100;
 FBS.Mu = 0.4;
 
@@ -76,6 +76,8 @@ Solution.Radius = ([]); Solution.Theta = ([]); Solution.Psi = ([]);
 % Initialize EtaMax.
 EtaMax = zeros(1,GlobalIteration);
 
+% Set cropping threshold:
+Cropping = 1e-1;
 
 %% Sliding Frank Wolfe Algorithm Interation:
 for ii = 1:GlobalIteration
@@ -145,15 +147,16 @@ for ii = 1:GlobalIteration
     % Choose solvers:
     switch LinearSolver
         case 'fbs'
-            LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
-                SourceNumUpdate);
+            [M,b]= ComputeHessian(Data.Measurement,PhiComponent,FL2Norm,Mesh);
+            LipschitzConst = norm(M,2); 
             FBS.tau = 1/LipschitzConst;
-            Solution.Intensity = FBSSolver(InitialIntensity,Data.Measurement,...
-                FBS,PhiComponent,Mesh,Lambda,FL2Norm);
+            Solution.Intensity = FBSSolver(InitialIntensity',M,b,Data.Measurement,...
+                FBS,PhiComponent,Mesh,Lambda,FL2Norm');
+            Solution.Intensity = Solution.Intensity';
         case 'fista'
             LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
                 SourceNumUpdate);
-%             LipschitzConst = 10*LipschitzConst;
+            %             LipschitzConst = 10*LipschitzConst;
             Solution.Intensity = fista_general(@(X) GradFISTA(X,Data.Measurement,...
                 Mesh,PhiComponent,FL2Norm),@(X) proj_l1(X,Lambda), InitialIntensity',...
                 LipschitzConst,FISTAopts, @(X) CalcDiscrepancy(X,Data.Measurement,...
@@ -177,6 +180,9 @@ for ii = 1:GlobalIteration
     
     % Debug line, output intensities:
     figure(3)
+%     if (ii>4)
+%         Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
+%     end
     bar(Solution.Intensity);
     % End of source intensity update
     
@@ -203,6 +209,9 @@ for ii = 1:GlobalIteration
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
+%             if (ii>4)
+%                 Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
+%             end
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
         case 'fmincon'
             problem = createOptimProblem('fmincon','x0',InitialSolution,...
