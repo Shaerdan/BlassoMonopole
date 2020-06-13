@@ -3,17 +3,17 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-5;
+Lambda = 1e-10;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
-MeshPointQSize.Theta = 500; MeshPointQSize.Psi = 500; Cap.Radius = 0.9;
+MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
 Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
 
 %% Souce Control:
-RadiusReal = 0.8; SourceNum = 3; % Real source depths and source number setup.
-IntensityReal = [1 -0.5 -0.5]; % Real source intensity setup.
-ThetaReal = [1.2, 0.2, 0.6]; PsiReal = [1.2, 0.2, 0.6]; % Real source angle setup.
+RadiusReal = [0.8 0.7 0.83 0.72]; SourceNum = 4; % Real source depths and source number setup.
+IntensityReal = [1 -1 1 -1]; % Real source intensity setup.
+ThetaReal = [.2, .2, .25,.25]; PsiReal = [.2, .2,.25,.25]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -45,7 +45,7 @@ LinearSolver = 'fbs';               % choose 'fbs' or 'relaxedfbs' or 'fista' or
 % 'lbfgsc' -- limited memory bfgs solver.
 % 'fminunc' -- matlab solver with a default quasi-newton algorithm
 %  and bfgs approximation of the Hessian.
-NonLinearSolver = 'lbfgsc';        % choose 'lbfgsc' or 'fmincon';
+NonLinearSolver = 'fmincon';        % choose 'lbfgsc' or 'fmincon';
 
 %% FBS solver control:
 FBS.Tau = 1e-2;
@@ -117,6 +117,7 @@ for ii = 1:GlobalIteration
         'ub',UpperBoundRefine,'lb',LowerBoundRefine, ...
         'objective',@(X) ObjEta(X,Lambda, Mesh,P),...
         'options', Opts);
+    figure(7)
     [SolutionLoc,EtaMin] = fmincon(problem);
     RadiusUpdate = SolutionLoc(1);
     ThetaUpdate = SolutionLoc(2);
@@ -149,7 +150,7 @@ for ii = 1:GlobalIteration
         case 'fbs'
             [M,b]= ComputeHessian(Data.Measurement,PhiComponent,FL2Norm,Mesh);
             LipschitzConst = norm(M,2); 
-            FBS.tau = 1/LipschitzConst;
+            FBS.tau = 1.9/LipschitzConst;
             Solution.Intensity = FBSSolver(InitialIntensity',M,b,Data.Measurement,...
                 FBS,PhiComponent,Mesh,Lambda,FL2Norm');
             Solution.Intensity = Solution.Intensity';
@@ -198,12 +199,12 @@ for ii = 1:GlobalIteration
         zeros(1,SourceNumUpdate)];
     UpperBoundNonLinear = [IntensityMax*ones(1,SourceNumUpdate),...
         repmat(Cap.Radius,1,SourceNumUpdate),repmat(pi,1,SourceNumUpdate),...
-        repmat(2*pi,1,SourceNumUpdate)];
+        repmat(pi,1,SourceNumUpdate)];
     
     % Choose nonlinear solver:
     switch NonLinearSolver
         case 'lbfgsc'
-            OptLBFGSB = struct('x0',InitialSolution','m',10,'factr',1e0,...
+            OptLBFGSB = struct('x0',InitialSolution','m',20,'factr',1e0,...
                 'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
@@ -214,15 +215,15 @@ for ii = 1:GlobalIteration
 %             end
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
         case 'fmincon'
-            problem = createOptimProblem('fmincon','x0',InitialSolution,...
+            problem = createOptimProblem('fmincon','x0',InitialSolution',...
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
                 'objective',@(X) ObjectiveFuncNonLinearFminunc(X,Data.Measurement,...
                 Lambda, Mesh),...
                 'options', Opts);
             [SolutionArgmin,fval2,flag,stepcount] = fmincon(problem);
             fprintf('flag of fmincon %d\n',flag);
-            Solution.Intensity = SolutionArgmin(1:SourceNumUpdate);
-            Solution.Location = SolutionArgmin(SourceNumUpdate+1:end);
+            Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
+            Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
     end
     
     % Update Solution Location Components:

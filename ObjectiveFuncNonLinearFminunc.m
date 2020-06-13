@@ -1,4 +1,4 @@
-function [J,GradientPseudo] = ObjectiveFuncNonLinearFminunc(X,Measurement,Lambda, Mesh)
+function [J] = ObjectiveFuncNonLinearFminunc(X,Measurement,Lambda, Mesh)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 SIN1 = sin(Mesh.ThetaQ);
