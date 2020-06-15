@@ -41,17 +41,36 @@ Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
 FBS.Iteration = 2e5;
-FBS.DisplayFrequency = 100;
+FBS.DisplayFrequency = 1;
 FBS.Mu = 0.4;
-
-%% FBS solver:
-% Initialize the linear minimization problem:
-InitialIntensity = randn(SourceNum,1);
-PhiComponent = ComputePotentialComponent(LocationReal,Mesh);
-FL2Norm = L2NormF(LocationReal,Mesh);
-LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
-    SourceNum);
-FBS.tau = 1/LipschitzConst;
-[M,b]= ComputeHessian(Data.Measurement,PhiComponent,FL2Norm,Mesh);
-IntensitySoln = FBSSolver(InitialIntensity,M,b,Data.Measurement,...
-    FBS,PhiComponent,Mesh,Lambda,FL2Norm');
+casestudy = 'general';
+switch casestudy
+    %% Test for source reconstruction problem:
+    % Initialize the linear minimization problem:
+    case 'monopole'
+        InitialIntensity = randn(SourceNum,1);
+        PhiComponent = ComputePotentialComponent(LocationReal,Mesh);
+        FL2Norm = L2NormF(LocationReal,Mesh);
+        LipschitzConst = ComputeLipschitzConstant(Mesh,PhiComponent,FL2Norm,...
+            SourceNum);
+        FBS.tau = 1/LipschitzConst;
+        [M,b]= ComputeHessian(Data.Measurement,PhiComponent,FL2Norm,Mesh);
+        IntensitySoln = FBSSolver(InitialIntensity,M,b,Data.Measurement,...
+            FBS,PhiComponent,Mesh,Lambda,FL2Norm');
+        
+        %% General Test: solve 0.5*||AX-b||_{2}^{2} + ||X||_{1};
+    case 'general'
+        m=10;n=100;
+        x = 10*randn(m,1);
+        A = randn(n,m);
+        x0 = randn(m,1);
+        Data.Measurement = A*x;
+        FL2Norm = ones(m,1);
+        M = A'*A;
+        b = A'*Data.Measurement;
+        LipschitzConst = norm(M,2);
+        FBS.tau = 1/LipschitzConst;
+        Soln = FBSTest(x0,M,b,Data.Measurement,FBS,A,Lambda);
+        plot(x); hold on; plot(Soln,'-*');
+        res=norm(x-Soln,2);
+end

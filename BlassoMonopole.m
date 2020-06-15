@@ -3,7 +3,7 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-10;
+Lambda = 1e-7;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
@@ -11,9 +11,9 @@ MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
 Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
 
 %% Souce Control:
-RadiusReal = [0.8 0.7 0.83 0.72]; SourceNum = 4; % Real source depths and source number setup.
-IntensityReal = [1 -1 1 -1]; % Real source intensity setup.
-ThetaReal = [.2, .2, .25,.25]; PsiReal = [.2, .2,.25,.25]; % Real source angle setup.
+RadiusReal = [0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7]; SourceNum = 8; % Real source depths and source number setup.
+IntensityReal = [1 -1 1 -1 1 -1 1 -1]; % Real source intensity setup.
+ThetaReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; PsiReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -51,7 +51,7 @@ NonLinearSolver = 'fmincon';        % choose 'lbfgsc' or 'fmincon';
 FBS.Tau = 1e-2;
 FBS.GradTol = 1e-10; FBS.StepTol = 1e-10;
 FBS.Iteration = 5e5;
-FBS.DisplayFrequency = 100;
+FBS.DisplayFrequency = 1;
 FBS.Mu = 0.4;
 
 %% FISTA solver constrol:
@@ -64,7 +64,7 @@ FISTAopts.L = 0;
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
     'MaxIterations',10000,'MaxFunctionEvaluations',20000,...
-    'OptimalityTolerance',1e-10,'StepTolerance',1e-16);
+    'OptimalityTolerance',1e-16,'StepTolerance',1e-16);
 
 
 %% Initializing the Sliding Frank Wolfe iteration %%%%%%
@@ -117,18 +117,20 @@ for ii = 1:GlobalIteration
         'ub',UpperBoundRefine,'lb',LowerBoundRefine, ...
         'objective',@(X) ObjEta(X,Lambda, Mesh,P),...
         'options', Opts);
-    figure(7)
     [SolutionLoc,EtaMin] = fmincon(problem);
+    EtaMin
     RadiusUpdate = SolutionLoc(1);
     ThetaUpdate = SolutionLoc(2);
     PsiUpdate = SolutionLoc(3);
-    figure(2)
-    bar([RadiusUpdate, ThetaUpdate, PsiUpdate]);
-    
-    %%% Termination condition for the global interation
+    %     figure(2)
+    %     bar([RadiusUpdate, ThetaUpdate, PsiUpdate]);
+    EtaMax(ii) = 2*sqrt(abs(EtaMin));
+    fprintf('Eta= %f', EtaMax(ii));
     if (EtaMax(ii) <=1)
         break
     end
+    %%% Termination condition for the global interation
+    
     
     % Update the source location assembly vector:
     Solution.Radius = [Solution.Radius,RadiusUpdate];
@@ -149,8 +151,8 @@ for ii = 1:GlobalIteration
     switch LinearSolver
         case 'fbs'
             [M,b]= ComputeHessian(Data.Measurement,PhiComponent,FL2Norm,Mesh);
-            LipschitzConst = norm(M,2); 
-            FBS.tau = 1.9/LipschitzConst;
+            LipschitzConst = norm(M,2);
+            FBS.tau = 1/LipschitzConst;
             Solution.Intensity = FBSSolver(InitialIntensity',M,b,Data.Measurement,...
                 FBS,PhiComponent,Mesh,Lambda,FL2Norm');
             Solution.Intensity = Solution.Intensity';
@@ -180,11 +182,11 @@ for ii = 1:GlobalIteration
     end
     
     % Debug line, output intensities:
-    figure(3)
-%     if (ii>4)
-%         Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
-%     end
-    bar(Solution.Intensity);
+    %     figure(3)
+    %     %     if (ii>4)
+    %     %         Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
+    %     %     end
+    %     bar(Solution.Intensity);
     % End of source intensity update
     
     %% Update source intensity and locations by solving anonlinear Lasso problem:
@@ -210,9 +212,9 @@ for ii = 1:GlobalIteration
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
-%             if (ii>4)
-%                 Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
-%             end
+            %             if (ii>4)
+            %                 Solution.Intensity(abs(Solution.Intensity)<= Cropping) = 0;
+            %             end
             Solution.Location = SolutionArgmin(SourceNumUpdate+1:end)';
         case 'fmincon'
             problem = createOptimProblem('fmincon','x0',InitialSolution',...
@@ -242,25 +244,25 @@ for ii = 1:GlobalIteration
     RadiusSoln = Solution.Location(1:SourceNumUpdate);
     ThetaSoln = Solution.Location(SourceNumUpdate+1:2*SourceNumUpdate);
     PsiSoln = Solution.Location(2*SourceNumUpdate+1:3*SourceNumUpdate);
-    figure(6)
-    CartesianXSoln = RadiusSoln.*sin(ThetaSoln).*cos(PsiSoln);
-    CartesianYSoln = RadiusSoln.*sin(ThetaSoln).*sin(PsiSoln);
-    CartesianZSoln = RadiusSoln.*cos(ThetaSoln);
-    CartesianXReal = RadiusReal.*sin(ThetaReal).*cos(PsiReal);
-    CartesianYReal = RadiusReal.*sin(ThetaReal).*sin(PsiReal);
-    CartesianZReal = RadiusReal.*cos(ThetaReal);
-    [XSphere,YSphere,ZSphere] = sphere;
-    h = surf(XSphere, YSphere, ZSphere,'FaceColor','none');
-    set(h, 'FaceAlpha', 0.2);
-    hold on;
-    for i = 1:SourceNum
-        scatter3(CartesianXReal(i),CartesianYReal(i),CartesianZReal(i),100,'r','linewidth',1.5);
-    end
-    for i = 1:SourceNumUpdate
-        scatter3(CartesianXSoln(i),CartesianYSoln(i),CartesianZSoln(i),100,'k','*','linewidth',1.5);
+        figure(6)
+        CartesianXSoln = RadiusSoln.*sin(ThetaSoln).*cos(PsiSoln);
+        CartesianYSoln = RadiusSoln.*sin(ThetaSoln).*sin(PsiSoln);
+        CartesianZSoln = RadiusSoln.*cos(ThetaSoln);
+        CartesianXReal = RadiusReal.*sin(ThetaReal).*cos(PsiReal);
+        CartesianYReal = RadiusReal.*sin(ThetaReal).*sin(PsiReal);
+        CartesianZReal = RadiusReal.*cos(ThetaReal);
+        [XSphere,YSphere,ZSphere] = sphere;
+        h = surf(XSphere, YSphere, ZSphere,'FaceColor','none');
+        set(h, 'FaceAlpha', 0.2);
         hold on;
-    end
-    hold off;
+        for i = 1:SourceNum
+            scatter3(CartesianXReal(i),CartesianYReal(i),CartesianZReal(i),100,'r','linewidth',1.5);
+        end
+        for i = 1:SourceNumUpdate
+            scatter3(CartesianXSoln(i),CartesianYSoln(i),CartesianZSoln(i),100,'k','*','linewidth',1.5);
+            hold on;
+        end
+        hold off;
     
 end
 

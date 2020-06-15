@@ -3,7 +3,7 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-4;
+Lambda = 1e-7;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
@@ -11,9 +11,9 @@ MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
 Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
 
 %% Souce Control:
-RadiusReal = [0.8 0.7 0.8 0.7]; SourceNum = 4; % Real source depths and source number setup.
-IntensityReal = [1 -1 1 -1]; % Real source intensity setup.
-ThetaReal = [.2, .2, .25,.25]; PsiReal = [.2, .2,.25,.25]; % Real source angle setup.
+RadiusReal = [0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7]; SourceNum = 8; % Real source depths and source number setup.
+IntensityReal = [1 -1 1 -1 1 -1 1 -1]; % Real source intensity setup.
+ThetaReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; PsiReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -41,7 +41,7 @@ method = 'fmincon';       % 'fmincon' or 'lbfgsc'
 %% fminunc solver control:
 Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
     'MaxIterations',10000,'MaxFunctionEvaluations',20000,...
-    'OptimalityTolerance',1e-10,'StepTolerance',1e-16);
+    'OptimalityTolerance',1e-16,'StepTolerance',1e-16);
 
 
 %% Initializing %%%%%%
