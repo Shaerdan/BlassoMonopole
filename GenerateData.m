@@ -11,7 +11,7 @@ function [Data] = GenerateData(Intensity,X,Mesh,level)
 
 NumSource = length(Intensity);
 PhiComponent = ComputePotentialComponent(X,Mesh);
-FL2Norm = L2NormF(X,Mesh);
+FL2Norm = L2NormF(X,Mesh); 
 IntensityNormalized = Intensity./FL2Norm;
 Data.Measurement = sum(bsxfun(@times,PhiComponent,reshape(IntensityNormalized,1,1,NumSource)),3);
 Data.Noise = level*randn(size(Data.Measurement));

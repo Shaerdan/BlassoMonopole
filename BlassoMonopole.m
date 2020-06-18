@@ -8,12 +8,12 @@ Lambda = 1e-7;
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
 MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
-Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
+Cap.Theta = 0.1*pi; Cap.Psi = 0.1*pi;
 
 %% Souce Control:
-RadiusReal = [0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7]; SourceNum = 8; % Real source depths and source number setup.
-IntensityReal = [1 -1 1 -1 1 -1 1 -1]; % Real source intensity setup.
-ThetaReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; PsiReal = [.2 .25 0.7 0.75 1.2 1.25 1.5 1.55]; % Real source angle setup.
+RadiusReal = [0.7 0.7 ]; SourceNum = 2; % Real source depths and source number setup.
+IntensityReal = [1 -1 ]; % Real source intensity setup.
+ThetaReal = [.2 .25  ]; PsiReal = [.2 .25 ]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -66,6 +66,10 @@ Opts = optimoptions(@fminunc,'PlotFcns',{@optimplotfval,@optimplotx},...
     'MaxIterations',10000,'MaxFunctionEvaluations',20000,...
     'OptimalityTolerance',1e-16,'StepTolerance',1e-16);
 
+Opts1 = optimoptions(@fmincon,'PlotFcns',{@optimplotfval,@optimplotx},...
+    'MaxIterations',10000,'MaxFunctionEvaluations',20000,...
+    'OptimalityTolerance',1e-16,'StepTolerance',1e-16,'CheckGradients',false,...
+    'SpecifyObjectiveGradient',true,'SpecifyConstraintGradient',false);
 
 %% Initializing the Sliding Frank Wolfe iteration %%%%%%
 GlobalIteration = 100;
@@ -206,8 +210,8 @@ for ii = 1:GlobalIteration
     % Choose nonlinear solver:
     switch NonLinearSolver
         case 'lbfgsc'
-            OptLBFGSB = struct('x0',InitialSolution','m',20,'factr',1e0,...
-                'pgtol',1e-30,'maxIts',10000,'maxTotalIts',500000,'printEvery',1);
+            OptLBFGSB = struct('x0',InitialSolution','m',50,'factr',1e4,...
+                'pgtol',1e-12,'maxIts',1000,'maxTotalIts',5000,'printEvery',1);
             [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
                 ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
                 LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
@@ -221,7 +225,7 @@ for ii = 1:GlobalIteration
                 'ub',UpperBoundNonLinear,'lb',LowerBoundNonLinear, ...
                 'objective',@(X) ObjectiveFuncNonLinearFminunc(X,Data.Measurement,...
                 Lambda, Mesh),...
-                'options', Opts);
+                'options', Opts1);
             [SolutionArgmin,fval2,flag,stepcount] = fmincon(problem);
             fprintf('flag of fmincon %d\n',flag);
             Solution.Intensity = SolutionArgmin(1:SourceNumUpdate)';
