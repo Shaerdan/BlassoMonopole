@@ -3,18 +3,18 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 1e-6;
+Lambda = 1e-8;
 
 %%% Mesh Control
 MeshPointSSize.Radius = 10; MeshPointSSize.Theta = 10; MeshPointSSize.Psi = 10;
 MeshPointQSize.Theta = 100; MeshPointQSize.Psi = 100; Cap.Radius = 0.9;
-Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
+Cap.Theta = pi; Cap.Psi = 2*pi;
 
 %% Souce Control:
 RadiusReal = [0.8 0.8]; SourceNum = 2; % Real source depths and source number setup.
 IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [.2 0.4]; PsiReal = [.2 0.4]; % Real source angle setup.
-NoiseLevel = 0;
+ThetaReal = [.2 .25 ]; PsiReal = [.2 .25 ]; % Real source angle setup.
+NoiseLevel = 1e-2;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
 LocationReal (SourceNum+1:2*SourceNum) = ThetaReal; % Store theta component ....
@@ -36,26 +36,26 @@ Mesh = GenerateMesh(MeshPointSSize,MeshPointQSize,Cap);
 Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 
 %% Choose method:
-method = 'fmincon';       % 'fmincon' or 'lbfgsc'
+method = 'lbfgsc';       % 'fmincon' or 'lbfgsc'
 
 %% fminunc solver control:
 Opts = optimoptions(@fmincon,'PlotFcns',{@optimplotfval,@optimplotx},...
     'MaxIterations',10000,'MaxFunctionEvaluations',20000,...
-    'OptimalityTolerance',1e-16,'StepTolerance',1e-16,'CheckGradients',false,...
+    'OptimalityTolerance',1e-16,'StepTolerance',1e-30,'CheckGradients',true,...
     'SpecifyObjectiveGradient',true,'SpecifyConstraintGradient',false);
 
 
 %% Initializing %%%%%%
 
-InitialSolution = randn(4*SourceNum,1);
-
-IntensityMax = 5;
+% InitialSolution = 10*randn(4*SourceNum,1);
+InitialSolution = zeros(4*SourceNum,1);
+IntensityMax = 50;
 LowerBoundNonLinear = [-IntensityMax*ones(1,SourceNum), ...
     repmat(0.001,1,SourceNum),zeros(1,SourceNum),...
     zeros(1,SourceNum)];
 UpperBoundNonLinear = [IntensityMax*ones(1,SourceNum),...
     repmat(Cap.Radius,1,SourceNum),repmat(pi,1,SourceNum),...
-    repmat(pi,1,SourceNum)];
+    repmat(2*pi,1,SourceNum)];
 % LowerBoundNonLinear = []; UpperBoundNonLinear = [];
 switch method
     case 'fmincon'
@@ -69,8 +69,8 @@ switch method
         Solution.Intensity = SolutionArgmin(1:SourceNum)';
         Solution.Location = SolutionArgmin(SourceNum+1:end)';
     case 'lbfgsc'
-        OptLBFGSB = struct('x0',InitialSolution,'m',100,'factr',1e4,...
-            'pgtol',1e-12,'maxIts',1000,'maxTotalIts',5000,'printEvery',1);
+        OptLBFGSB = struct('x0',InitialSolution,'m',100,'factr',1e0,...
+            'pgtol',1e-16,'maxIts',5000,'maxTotalIts',50000,'printEvery',1);
         [SolutionArgmin,f_val2,info2] = lbfgsb( @(X) ...
             ObjectiveFuncNonLinearLBFGSB(X,Data.Measurement,Lambda, Mesh),...
             LowerBoundNonLinear', UpperBoundNonLinear', OptLBFGSB );
@@ -82,6 +82,8 @@ switch method
 end
 
 IntensitySoln = Solution.Intensity;
+figure(4)
+bar(IntensitySoln);
 RadiusSoln = Solution.Location(1:SourceNum);
 ThetaSoln = Solution.Location(SourceNum+1:2*SourceNum);
 PsiSoln = Solution.Location(2*SourceNum+1:3*SourceNum);

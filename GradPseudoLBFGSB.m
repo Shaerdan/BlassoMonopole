@@ -1,76 +1,75 @@
-function [GradPseudo] = GradPseudoLBFGSB(X,Measurement,Mesh,Lambda)
+function [GradPseudo,Jac] = GradPseudoLBFGSB(X,Measurement,Mesh,Lambda,SwitchNorm,ConditionTerm)
 
-%%  Compute pseudo gradient of ||Estimates(X) - Measurement||_2^2 + ...
-%  Lambda* ||X||_1;
-%  GradPseudo = d||Estimates - Measurement||_2^2/dX + ...
-%  SubGradient of Lambda*||X||_1;
+%%  Compute pseudo gradient of 0.5*||Estimates(X) - Measurement||_2^2 + ...
+%%  ... Lambda* ||X||_1;
+%  GradPseudo = d/dX (0.5*||Estimates - Measurement||_2^2) + ...
+%  ... SubGradient of Lambda*||X||_1;
 %  I --- Source intensity;
 
 %% Initialize:
+global LogSwitch
 SourceNum = length(X)/4;
 I = X(1:SourceNum);
 Locations = X(SourceNum+1:end);
-RadiusPi = X(SourceNum +1:2*SourceNum);
-ThetaPi = X(2*SourceNum +1:3*SourceNum);
-PsiPi = X(3*SourceNum +1:4*SourceNum);
-SIN1 = sin(Mesh.ThetaQ);
-COS1 = cos(Mesh.ThetaQ);
-dx = Mesh.ThetaQLine';
-dy = Mesh.PsiQLine';
+SourceRadius = X(SourceNum +1:2*SourceNum);
+SourceTheta = X(2*SourceNum +1:3*SourceNum);
+SourcePsi = X(3*SourceNum +1:4*SourceNum);
+SIN1 = sin(Mesh.ThetaQ(:));
+COS1 = cos(Mesh.ThetaQ(:));
 GradPseudo = zeros(1,SourceNum);
 GradSub = GradPseudo;
-GradDescrepency  = GradPseudo;
-[PhiPi,CosGamma,DistPQ] = ComputePotentialComponent(Locations,Mesh);
+Jac  = zeros(length(SIN1),4*SourceNum); PDotQ = Jac; Di_DistPQ = Jac;
+Di_PDotQ = Jac; Di_PhiPi = Jac; Di_CosGamma = Jac;
+[PhiPi,CosGamma,DistPQ] = ComputePotentialComponent(Locations,Mesh,SwitchNorm);
 FL2Norm = L2NormF(Locations,Mesh);
-Estimation=sum(bsxfun(@times,PhiPi,reshape(I./FL2Norm',1,1,SourceNum)),3);
+Estimation=PhiPi*I;
 Descrepency = Estimation - Measurement;
 %% Compute the Pseudo gradient of the objective function:
+PhiPiNorm = FL2Norm(1:SourceNum);
+%% dObjectiveFunction/dIntensity
+GradSub(1:SourceNum) = Lambda*sign(I);
+% GradSub(1:SourceNum) = 0;
+GradSub(SourceNum+1:4*SourceNum) = 0;
 for i = 1:SourceNum
-    
-    GPi = FL2Norm(i);
-    %% dObjectiveFunction/dIntensity
-    Integrand_Di_f_des = (Descrepency.*(PhiPi(:,:,i)/GPi).*SIN1);
-    GradDescrepency(i)  = trapz(dy,trapz(dx,Integrand_Di_f_des,2));
-    GradSub(i) = Lambda*sign(X(i));
-    GradPseudo(i) =   GradDescrepency(i) + GradSub(i);
-    
+    Jac(:,i)  = PhiPi(:,i);
     %% dObjectiveFunction/dRadius
-    PDotQ = RadiusPi(i)*CosGamma(:,:,i);
-    Di_DistPQ = (RadiusPi(i)-CosGamma(:,:,i))./DistPQ(:,:,i);
-    Di_PDotQ  = CosGamma(:,:,i);
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (-Di_PDotQ + Di_DistPQ)./(1- PDotQ + DistPQ(:,:,i));
-    Di_GPi    = trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/GPi;
-    Di_Estimate = I(i)*(GPi*Di_PhiPi - PhiPi(:,:,i)*Di_GPi)/(GPi)^2;
-    Integrand = Descrepency.*Di_Estimate.*SIN1;
-    GradDescrepency(i+SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
-    GradPseudo(i+SourceNum) = GradDescrepency(i+SourceNum) ;
-    
+    PDotQ(:,i) = SourceRadius(i)*CosGamma(:,i);
+    Di_DistPQ(:,i) = (SourceRadius(i)-CosGamma(:,i))./DistPQ(:,i);
+    Di_PDotQ(:,i)  = CosGamma(:,i);
+    Di_PhiPi(:,i)  = (-2./(DistPQ(:,i).^2)).*Di_DistPQ(:,i) ...
+        - LogSwitch*(-Di_PDotQ(:,i) + Di_DistPQ(:,i))./(1- PDotQ(:,i) + DistPQ(:,i));
+    Di_PhiPiNorm(i)    = (PhiPi(:,i))'*Di_PhiPi(:,i);
+    Jac(:,i+SourceNum) = I(i)*(PhiPiNorm(i)*Di_PhiPi(:,i)/(PhiPiNorm(i))^2 - PhiPi(:,i).*Di_PhiPiNorm(i)/PhiPiNorm(i));
+    %         Jac(:,i+1)  = Di_Estimate'*Descrepency;
+    %         GradPseudo(i+SourceNum) = Jac(i+SourceNum) ;
     %% dObjectiveFunction/dTheta
-    Di_CosGamma = -sin(ThetaPi(i))*COS1+cos(ThetaPi(i))*SIN1...
-        .*cos(Mesh.PsiQ - PsiPi(i));
-    Di_DistPQ = -(RadiusPi(i)*Di_CosGamma./DistPQ(:,:,i));
-    Di_PDotQ  = RadiusPi(i)*Di_CosGamma;
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (-Di_PDotQ + Di_DistPQ)./(1- PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/GPi);
-    Di_Estimate = I(i)*(GPi*Di_PhiPi - PhiPi(:,:,i)*Di_GPi)/(GPi)^2;
-    Integrand = Descrepency.*Di_Estimate.*SIN1;
-    GradDescrepency(i+2*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
-    GradPseudo(i+2*SourceNum) = GradDescrepency(i+2*SourceNum) ;
+    Di_CosGamma(:,i) = -sin(SourceTheta(i))*COS1'+cos(SourceTheta(i))*SIN1'...
+        .*(cos(Mesh.PsiQ(:) - SourcePsi(i)))';
+    Di_DistPQ(:,i) = -(SourceRadius(i)*Di_CosGamma(:,i)./DistPQ(:,i));
+    Di_PDotQ(:,i)  = SourceRadius(i)*Di_CosGamma(:,i);
+    Di_PhiPi(:,i)  = (-2./(DistPQ(:,i).^2)).*Di_DistPQ(:,i) ...
+        - LogSwitch*(-Di_PDotQ(:,i) + Di_DistPQ(:,i))./(1- PDotQ(:,i) + DistPQ(:,i));
+    Di_PhiPiNorm(i)    = (PhiPi(:,i))'*Di_PhiPi(:,i);
+    Jac(:,i+2*SourceNum) = I(i)*(PhiPiNorm(i)*Di_PhiPi(:,i)/(PhiPiNorm(i))^2 - PhiPi(:,i).*Di_PhiPiNorm(i)/PhiPiNorm(i));
+    %         Jac(:,i+2)  = Di_Estimate;
+    %         GradPseudo(i+2*SourceNum) = Jac(i+2*SourceNum) ;
     
     %% dObjectiveFunction/dPsi
-    Di_CosGamma =  -sin(ThetaPi(i)).*SIN1...
-        .*sin(PsiPi(i) - Mesh.PsiQ);
-    Di_DistPQ = -(RadiusPi(i)*Di_CosGamma./DistPQ(:,:,i));
-    Di_PDotQ  = RadiusPi(i)*Di_CosGamma;
-    Di_PhiPi  = (-2./(DistPQ(:,:,i).^2)).*Di_DistPQ ...
-        - (-Di_PDotQ + Di_DistPQ)./(1- PDotQ + DistPQ(:,:,i));
-    Di_GPi    = (trapz(dy,trapz(dx,PhiPi(:,:,i).*Di_PhiPi.*SIN1,2))/GPi);
-    Di_Estimate = I(i)*(GPi*Di_PhiPi - PhiPi(:,:,i)*Di_GPi)/(GPi)^2;
-    Integrand = Descrepency.*Di_Estimate.*SIN1;
-    GradDescrepency(i+3*SourceNum)  = trapz(dy,trapz(dx,Integrand,2));
-    GradPseudo(i+3*SourceNum) = GradDescrepency(i+3*SourceNum) ;
+    Di_CosGamma(:,i) =  -sin(SourceTheta(i)).*SIN1'...
+        .*(sin(SourcePsi(i) - Mesh.PsiQ(:)))';
+    Di_DistPQ(:,i) = -(SourceRadius(i)*Di_CosGamma(:,i)./DistPQ(:,i));
+    Di_PDotQ(:,i)  = SourceRadius(i)*Di_CosGamma(:,i);
+    Di_PhiPi(:,i)  = (-2./(DistPQ(:,i).^2)).*Di_DistPQ(:,i) ...
+        - LogSwitch*(-Di_PDotQ(:,i) + Di_DistPQ(:,i))./(1- PDotQ(:,i) + DistPQ(:,i));
+    Di_PhiPiNorm(i)    = (PhiPi(:,i))'*Di_PhiPi(:,i);
+    Jac(:,i+3*SourceNum) = I(i)*(PhiPiNorm(i)*Di_PhiPi(:,i)/(PhiPiNorm(i))^2 - PhiPi(:,i).*Di_PhiPiNorm(i)/PhiPiNorm(i));
+    %         Jac(:,i+3)  = Di_Estimate'*Descrepency;
+    %         GradPseudo(i+3*SourceNum) = Jac(i+3*SourceNum) ;
 end
- GradPseudo = GradPseudo';
+
+
+GradDescrepency = ConditionTerm*Jac'*Descrepency;
+GradPseudo = GradDescrepency + GradSub';
+
+% GradPseudo = GradPseudo';
 end

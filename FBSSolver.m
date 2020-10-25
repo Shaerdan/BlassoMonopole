@@ -12,15 +12,15 @@ GradCheck = 1;
 IterationCount =1;
 DiscrepancyResidualCheck = zeros(1,FBS.Iteration);
 StepSize = 1;
-dx = Mesh.ThetaQLine';
-dy = Mesh.PsiQLine';
+dx = Mesh.ThetaQLine;
+dy = Mesh.PsiQLine;
 SIN1 = sin(Mesh.ThetaQ);
 % FBS loop (termination condition is: Gradient <= tolerence && Stepsize <= tolerence && InterationCount = Maxiteration):
 while (GradCheck > FBS.GradTol && IterationCount < FBS.Iteration && StepSize > FBS.StepTol)
     Estimates = sum(bsxfun(@times,PhiComponent,reshape(XHat./FL2Norm,1,1,SourceNum)),3);
     Discrepancy = Estimates - Measurement; 
     DiscrepancyGradient = GradFBS(XHat,M,b);
-    IntegrandLeastSquare = (Discrepancy.^2)*SIN1;
+    IntegrandLeastSquare = (Discrepancy.^2).*SIN1;
     DiscrepancyResidualCheck(IterationCount+1) = trapz(dy,trapz(dx,IntegrandLeastSquare,2))+...
         Lambda*norm(XHat,1);    
     StepSize = abs(DiscrepancyResidualCheck(IterationCount+1) - DiscrepancyResidualCheck(IterationCount));

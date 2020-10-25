@@ -19,18 +19,16 @@ while (GradCheck > FBS.GradTol && IterationCount < FBS.Iteration && StepSize > F
         Lambda*norm(XHat,1);
     StepSize = abs(DiscrepancyResidualCheck(IterationCount+1) - DiscrepancyResidualCheck(IterationCount));
     DiscrepancyGradient = GradFBS(XHat,M,b);
-    
+    GradCheck = norm(DiscrepancyGradient,2);
     XHat = XHat - FBS.Tau*DiscrepancyGradient;
     
     SoftThresholding = sign(XHat).*max(0, abs(XHat) - FBS.Tau*Lambda);
     
     XHat = SoftThresholding;
-    
-    DiscrepancyGradientCheck = norm(DiscrepancyGradient,2);
-    
+        
     if (mod(IterationCount,FBS.DisplayFrequency)==0)
         fprintf(' lfbs log10(Discrepency) = %d \n',log10(DiscrepancyResidualCheck(IterationCount)));
-        fprintf(' lfbs log10(DiscrepancyGradientient) = %d \n',log10(DiscrepancyGradientCheck));
+        fprintf(' lfbs log10(DiscrepancyGradientient) = %d \n',log10(GradCheck));
         fprintf(' lfbs Iter = %d \n',IterationCount);
     end
     

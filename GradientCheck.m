@@ -4,7 +4,7 @@ clear all;
 close all;
 %% Setup Parameters:
 %%% Regularization
-Lambda = 0;
+Lambda = 1e-1;
 format longE
 
 %%% Mesh Control
@@ -15,7 +15,7 @@ Cap.Theta = 0.5*pi; Cap.Psi = 0.5*pi;
 %% Souce Control:
 RadiusReal = [0.8 0.8]; SourceNum = 2; % Real source depths and source number setup.
 IntensityReal = [1 -1]; % Real source intensity setup.
-ThetaReal = [.2 1.8]; PsiReal = [.2 1.8]; % Real source angle setup.
+ThetaReal = [.2 .3]; PsiReal = [.2 .3]; % Real source angle setup.
 NoiseLevel = 0;
 LocationReal = zeros(3*SourceNum,1);   % Initialize real source location assembly vector.
 LocationReal (1:SourceNum) = RadiusReal; % Store radius component to the assembly vector.
@@ -37,8 +37,9 @@ Mesh = GenerateMesh(MeshPointSSize,MeshPointQSize,Cap);
 % Data: Data.Measurement, Data.Noise
 Data = GenerateData(IntensityReal,LocationReal,Mesh,NoiseLevel);
 S_exact = [IntensityReal'; LocationReal];
-% S1 = randn(4*SourceNum,1);
-S1 = S_exact+(1e-2)*randn(4*SourceNum,1);
+S1 = randn(4*SourceNum,1);
+Perturb = 10;
+S1 = S_exact+Perturb*randn(4*SourceNum,1);
 delta = 1e-10;
 f = @(X)GradTest(X,Data.Measurement,Mesh,Lambda);
 S2 = S1;
@@ -47,7 +48,7 @@ for i = 1:4*SourceNum
     S2(i) = S1(i) + 0.5*delta;
     S0(i) = S1(i) - 0.5*delta;
     y2 = f(S2); y1 = f(S1); y0 =f(S0);
-    gradcentral(i) = (y2-y0)/(delta);
+    dydx_central(i) = (y2-y0)/(delta);
     S2 = S1;
     S0 = S1;
 end
@@ -62,7 +63,7 @@ for i = 1:4*SourceNum
     S3(i) = S1(i) + 2*delta;
     Sm1(i)= S1(i) - 2*delta; 
     y3=f(S3); y2 = f(S2); y0 =f(S0);ym1 = f(Sm1);
-    gradhigher(i) = (-y3 + 8*y2 - 8*y0 +ym1)/(12*delta);
+    dydx_higher(i) = (-y3 + 8*y2 - 8*y0 +ym1)/(12*delta);
     S2 = S1;
     S0 = S1;
     S3 = S1;

@@ -1,4 +1,4 @@
-function [P] = EvaluateP(X,I,Measurement,Mesh,SwitchNorm)
+function [P] = EvaluateP0(X,I,Measurement,Mesh,FL2Norm)
 
 %   Compute P = Measurement - Estimation.
 
@@ -7,17 +7,13 @@ function [P] = EvaluateP(X,I,Measurement,Mesh,SwitchNorm)
 %   Estimation --- computed analytically from:
 %                    Sum_i(I(i)*PhiComponent(X(i)));
 
-SourceNum = length(I);
-
-if (~isempty(I))
-    PhiComponent = ComputePotentialComponent(X,Mesh,SwitchNorm);
-    Estimation = PhiComponent*I';
+    I_Normalized = I./FL2Norm;
+    PhiComponent = ComputePotentialComponent(X,Mesh);
+    Estimation=PhiComponent*I_Normalized';
     P = -Estimation + Measurement;
 %     figure(40)
 %     surf(Estimation);
-else
-    P = Measurement;
-end
+
 
 end
 

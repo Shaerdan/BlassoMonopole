@@ -3,11 +3,11 @@ function [LipschitzConst] = ComputeLipschitzConstant(Mesh,PhiComponent,...
 %   Compute L = \int_{Q} A^2(Q) dQ, where A(Q) = \phi(Q)/G_{P_i}; 
 
 D = sin(Mesh.ThetaQ);
-dx = Mesh.ThetaQLine';
-dy = Mesh.PsiQLine';
+dx = Mesh.ThetaQLine;
+dy = Mesh.PsiQLine;
 Ai = zeros(size(PhiComponent));
 for i = 1:SourceNumUpdate
-    Ai(:,:,i) = PhiComponent(:,:,i)./FL2Norm(i);
+    Ai(:,:,i) = PhiComponent(:,:,i);
 end
 AiSum = sum(Ai,3);
 AiNorm = sqrt(sum(Ai.^2,3));
